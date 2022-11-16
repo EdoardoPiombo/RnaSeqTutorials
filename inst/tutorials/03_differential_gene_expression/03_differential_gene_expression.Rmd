@@ -15,7 +15,9 @@ runtime: shiny_prerendered
 Actually multiple objects at different step in the pipeline -->
 
 ```{r setup, include=FALSE}
-# to run locally replace www with tutorials/03_differential_gene_expression/www
+# to run locally replace tutorials/03_differential_gene_expression/www with inst/tutorials/03_differential_gene_expression/www
+
+# to run as an app replace tutorials/03_differential_gene_expression/www with www
 
 # libs
 suppressPackageStartupMessages({
@@ -61,7 +63,7 @@ tutorial_options(
 
 ## Introduction
 
-In the previous tutorial, we saw that the data quality looks good, one sample was sequenced at a lower depth that then others, but it did not appear to  be a reason to worry after we conducted the Exploratory Data Analysis (EDA). On the other hand, the Principal Component Analysis (PCA) and the heat-map revealed that the third dimension was explained by the `B` replicates, while the first, second and forth could be explained by either of the studies design variable: `time` and `treatment`. The heat-map revealed a possible origin for that, in the sense that at time-point `T03` the data is classifying by replicates, while at time `T04`, it classifies by `treatment`. 
+In the previous tutorial, we saw that the data quality looks good, one sample was sequenced at a lower depth that the others, but it did not appear to  be a reason to worry after we conducted the Exploratory Data Analysis (EDA). On the other hand, the Principal Component Analysis (PCA) and the heat-map revealed that the third dimension was explained by the `B` replicates, while the first, second and forth could be explained by either of the studies design variable: `time` and `treatment`. The heat-map revealed a possible origin for that, in the sense that at time-point `T03` the data is classifying by replicates, while at time `T04`, it classifies by `treatment`. 
 
 This gives us some food for thoughts, as we need to decide how to best conduct the Differential Gene Expression (DGE) analysis, especially when looking at the `treatment` effect.
 
@@ -576,6 +578,7 @@ Then in the `Design formula` text box enter the following formulas and look at t
 Below are some example plots, showing the different contributions of the variables (as arrows) for the different contrasts. The plots represent the expression values of a single gene (as black dots) in different samples, separated by sample groups. These are meant as a visual help to what is reported in the `ExploreModelMatrix` [app](http://terra.upsc.se/ExploreModelMatrix/). Note the image are from a different studies where the variables are treatment and genotype.
 
 ---
+~$0 + treatment$
 
 ![`~0 + treatment`](images/design_0_treatment.png){width=80%}
 
@@ -584,6 +587,7 @@ Here, we force the linear model to go through the origin (0), so there is no con
 **Note:** remember our data have been log-transformed so the ratio $treatmenttreated / treatmentcontrol$ is $treatmenttreated - treatmentcontrol$ as a log-ratio. 
 
 ---
+~$treatment$
 
 ![`~treatment`](images/design_treatment.png){width=80%}
 
@@ -601,6 +605,7 @@ quiz(caption="How do the two formula compare?",
 **Note:** The default reference is devised by the alphabetic order of the variable, hence the reason why `control` is the default in this image and the treatment `G02` in our data.
 
 ---
+~$treatment + genotype$
 
 ![`~treatment+genotype`](images/design_treatment_time.png){width=80%}
 
@@ -615,8 +620,9 @@ quiz(caption="Blocking...",
 ```
 
 ---
+~$treatment * genotype$
 
-![`~treatment * time`](images/design_treatment_by_time.png){width=80%}
+![`~treatment * genotype`](images/design_treatment_by_time.png){width=80%}
 
 Here, and that's probably the most common case, we **cannot** assume that both variables are independent, so we factored in an `interaction term`. From the image it is obvious that the effects of the treatment in the genotype A (blue) and the effect of the genotype B among control samples (red) do not explain the expression values observed in the treated genotype B condition. By summing the contribution of red and blue, we can derive the effect of the treatment in genotype B (green). 
 
@@ -633,6 +639,8 @@ quiz(caption="Comparing treatment in genotypes",
 A final note on contrasts. They are (to me at least) headache generators. And that's where the `ExploreModelMatrix`, as well as the vignettes of the `DESeq2` and `edgeR` packages are really useful. I also always cross-validate my results, by looking at heatmaps and validating the log ratio by taking a few example genes and doing the maths.
 
 There are different ways of writing contrasts; what I have described above is the approach used by `DESeq2`. `edgeR` use model matrices and tend to rely on using no reference; _e.g._ instead of using `~treatment * time`, one could create a single variable `condition` that would concatenate treatment and time in a single factor (_i.e._ in our cases T03_G02, T03_G03, T04_G02 and T04_G03) and use a simpler model: `~0+condition`. Then one can write any contrast easily in math terms, _e.g._ looking at the example above (effect of the treatment in genotype B) would be written as $T04\_G03 - (T03\_G03 + T04\_G02)$
+
+~$0 + condition$
 
 ![~0+condition](images/design_0_condition.png){width=80%}
 

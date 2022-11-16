@@ -12,8 +12,9 @@ runtime: shiny_prerendered
 ---
 
 ```{r setup, include=FALSE}
-# to run locally replace www with inst/tutorials/02_exploratory_data_analysis/www
+# to run locally replace tutorials/02_exploratory_data_analysis/www with inst/tutorials/02_exploratory_data_analysis/www
 
+# to run as an app replace tutorials/02_exploratory_data_analysis/www with www
 
 # libs
 library(DESeq2)
