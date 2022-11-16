@@ -908,7 +908,6 @@ vst <- readRDS(here("www/vst.rds"))
 
 
 ```{r featSel, exercise=TRUE, exercise.eval=TRUE, exercise.setup="featSel-setup"}
-source(here("www/featureSelection.R"))
 conds <- factor(paste(dds$time,dds$treatment))
 sels <- rangeFeatureSelect(counts=vst,conditions=conds)
 ```
