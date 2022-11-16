@@ -3,7 +3,7 @@ title: "Exploratory Data Analysis (EDA), _a.k.a._ Biological Quality Assessment"
 author: "Nicolas Delhomme for Bn Bioinformatics"
 tutorial:
   id: "org.bnbio.tutorials.02_exploratory_data_analysis"
-  version: 0.5.1
+  version: 0.6.0
 output:
   learnr::tutorial:
     progressive: true
@@ -12,7 +12,7 @@ runtime: shiny_prerendered
 ---
 
 ```{r setup, include=FALSE}
-# to run locally replace www with tutorials/02_exploratory_data_analysis/www
+# to run locally replace www with inst/tutorials/02_exploratory_data_analysis/www
 
 
 # libs
@@ -31,22 +31,28 @@ tutorial_options(
 source(here("www/featureSelection.R"))
 
 # data
-txi <- readRDS(here("www/tximport.rds"))
-counts <- round(txi$counts)
 sample_file <- here("www/samples_table.tsv")
 samples <- read_tsv(sample_file,col_types=c("cfff"))
-dds <- DESeqDataSetFromTximport(
-  txi=txi,
-  colData = samples,
-  design = ~ time * treatment)
-dds <- estimateSizeFactors(dds)
-vsd <- varianceStabilizingTransformation(dds, blind=TRUE)
-vst <- assay(vsd)
-vst <- vst - min(vst)
-pc <- prcomp(t(vst))
-percent <- round(summary(pc)$importance[2,]*100)
-conds <- factor(paste(dds$time,dds$treatment))
-sels <- rangeFeatureSelect(counts=vst,conditions=conds,plot=FALSE)
+
+# step to reproduce
+# ---
+# txi <- readRDS(here("inst/tutorials/02_exploratory_data_analysis/www/tximport.rds"))
+# counts <- round(txi$counts)
+# saveRDS(counts,file=here("inst/tutorials/02_exploratory_data_analysis/www/counts.rds"))
+# dds <- DESeqDataSetFromTximport(
+#   txi=txi,
+#   colData = samples,
+#   design = ~ time * treatment)
+# dds <- estimateSizeFactors(dds)
+# saveRDS(dds,file=here("inst/tutorials/02_exploratory_data_analysis/www/dds.rds"))
+# vsd <- varianceStabilizingTransformation(dds, blind=TRUE)
+# vst <- assay(vsd)
+# vst <- vst - min(vst)
+# saveRDS(vst,file=here("inst/tutorials/02_exploratory_data_analysis/www/vst.rds"))
+# pc <- prcomp(t(vst))
+# percent <- round(summary(pc)$importance[2,]*100)
+# conds <- factor(paste(dds$time,dds$treatment))
+# sels <- rangeFeatureSelect(counts=vst,conditions=conds,plot=FALSE)
 ```
 
 ## Introduction
@@ -135,7 +141,7 @@ samples <- read_tsv(sample_file)
 
 There is a lot more options that can be used to tune importing the data. The `R` language has its origin has a statistical language. Many of the variables we have in our metadata are actually categorical variables, which are best represented in `R` as `factor`s. Re-read the metadata setting the relevant columns as factors.
 
-```{r metadata2, exercise=TRUE, exercise.eval=TRUE,message=FALSE}
+```{r metadata2, exercise=TRUE, exercise.eval=TRUE, message=FALSE, exercise.setup="metadata"}
 sample_file <- here("www/samples_table.tsv")
 samples <- read_tsv(sample_file)
 ```
@@ -286,7 +292,7 @@ txi <- tximport(<QUANT.SF_FILES>,type="salmon",tx2gene=<TX2GENE>,varReduce=TRUE)
 
 where `<QUANT.SF_FILES>` was the character vector of the salmon results' quant.sf files, <TX2GENE> is a simple tab delimited file containing for every transcript ID, the corresponding gene ID. Note that salmon was used in a mode that bootstraps the quantification (since it is an expectation-maximisation process) typically a 100 times. This allows to devise per-sample inferential replicate information, which was then summarised by setting `varReduce=TRUE`. The `txi` object was saved and we now load it into our session.
 
-```{r tximport, exercise=TRUE, exercise.eval=FALSE}
+```{r tximport, exercise=TRUE, exercise.eval=FALSE, exercise.setup="metadata2"}
 txi <- readRDS(here("www/tximport.rds"))
 
 ```
@@ -344,7 +350,7 @@ We have now seen `tximport` but very often you would want to get more than the g
 
 Now that we have a good idea of our data and metadata, let us look at them!
 
-## Exploratory data analysis
+## Exploratory Data Analysis
 
 We will start by extracting the counts that we need. 
 
@@ -359,7 +365,7 @@ quiz(caption="raw or TPM, that is the question",
 
 Write the code to extract the counts and apply a function to convert them to integers.
 
-```{r counts, exercise=TRUE, exercise.eval=FALSE}
+```{r counts, exercise=TRUE, exercise.eval=FALSE, exercise.setup="tximport"}
 
 ```
 
@@ -373,8 +379,11 @@ counts <- round(txi$counts)
 ```
 
 Now, it is very important that we do some sanity checking. Our metadata and data are two **SEPARATE** entities. We need to ensure that they are from the same studies, that samples are the same and most importantly sorted in the same order! Give it a try.
+```{r counts-pre, include=FALSE}
+counts <- readRDS(here("www/counts.rds"))
+```
 
-```{r sanity, exercise=TRUE, exercise.eval=FALSE}
+```{r sanity, exercise=TRUE, exercise.eval=FALSE, exercise.setup="counts-pre"}
 
 ```
 
@@ -407,7 +416,7 @@ quiz(caption="Does it matter?",
 
 One of the first question is to figure out how many of the genes are never observed in any of the samples. Write the code to get that as a percentage of the total number of genes
 
-```{r noexp, exercise=TRUE, exercise.eval=FALSE}
+```{r noexp, exercise=TRUE, exercise.eval=FALSE, exercise.setup="sanity"}
 
 ```
 
@@ -439,12 +448,13 @@ Another important initial assessment is to evaluate the discrepancy (if any) in 
 
 First, write the code to reproduce the following object:
 ```{r tibble-view, echo=FALSE, eval=TRUE}
+counts <- readRDS(file=here("www/counts.rds"))
 tibble(x=colnames(counts),
        y=colSums(counts)) %>% 
   bind_cols(samples)
 ```
 
-```{r tibble,  exercise=TRUE, exercise.eval=FALSE}
+```{r tibble,  exercise=TRUE, exercise.eval=FALSE, exercise.setup="noexp"}
 
 ```
 
@@ -461,7 +471,7 @@ dat <- tibble(x=colnames(counts),y=colSums(counts)) %>%
 
 Now that we have the data in the correct shape, visualise it using ggplot.
 
-```{r barplot, exercise=TRUE, exercise.eval=FALSE, exercise.lines = 5}
+```{r barplot, exercise=TRUE, exercise.eval=FALSE, exercise.lines = 5, exercise.setup="tibble"}
 dat <- tibble(x=colnames(counts),y=colSums(counts)) %>% 
   bind_cols(samples)
 
@@ -512,7 +522,7 @@ as.data.frame(log10(counts)) %>%
   left_join(samples %>% select(-replicate),by=c("sample_id"))
 ```
 
-```{r pivot, exercise=TRUE, exercise.eval=FALSE}
+```{r pivot, exercise=TRUE, exercise.eval=FALSE, exercise.setup="barplot"}
 
 ```
 
@@ -545,7 +555,7 @@ dat <- as.data.frame(log10(counts)) %>%
 
 Now that we have the data in the right shape, we can visualise it. For that we can use the density geom, and as while we want to visualise the individual samples, we need to have a corresponding `group` aesthetic.
 
-```{r density, exercise=TRUE, exercise.eval=FALSE, exercise.lines=10}
+```{r density, exercise=TRUE, exercise.eval=FALSE, exercise.lines=10, exercise.setup="pivot"}
 dat <- as.data.frame(log10(counts)) %>% 
   rownames_to_column() %>% 
   pivot_longer(starts_with("SRR"),
@@ -652,8 +662,12 @@ dds <- DESeqDataSetFromTximport(
  **Note:**
 See the warning we got? Well, up there reading the metadata, the last command reset samples to have all columns as characters. This is `R` default since version 4, but in previous versions, factors were the default to represent alphanumeric values.
 
+```{r dds-rds, include=FALSE}
+dds <- readRDS(here("www/dds.rds"))
+```
+
 Before we proceed, take a few instants to familiarise with the `DESeqDataSet` object.
-```{r dds-what, exercise=TRUE, exercise.eval=FALSE}
+```{r dds-what, exercise=TRUE, exercise.eval=FALSE, exercise.setup="dds-rds"}
 dds
 colData(dds)
 colnames(dds)
@@ -671,7 +685,7 @@ If you observe the example above, you will realise that all the function calls p
 
 Now that we have the object ready, we can estimate the normalisation factor for the difference in sequencing depth using `DESeq2` `estimateSizeFactors()` function. Write the code to do so.
 
-```{r size_factors, exercise=TRUE, exercise.eval=FALSE}
+```{r size_factors, exercise=TRUE, exercise.eval=FALSE, exercise.setup="dds-rds"}
 
 ```
 
@@ -685,7 +699,7 @@ dds <- estimateSizeFactors(dds)
 
 As you may observe, `DESeq2` informs us that it will use the average transcript length to correct the expression values. The size factor will be calculated per gene per library, so the `DESeq2` function `normalizationFactor()` will return a matrix. Our next assessment is to figure out how (dis)similar these factors are across our dataset. Revisit the code we wrote for visualising the raw data count distribution per sample to visualise the normalisation factor. Instead of a `geom_bar()`, try to use a `geom_violin()`
 
-```{r norm_factor, exercise=TRUE, exercise.eval=FALSE}
+```{r norm_factor, exercise=TRUE, exercise.eval=FALSE, exercise.setup="dds-rds"}
 
 ```
 
@@ -729,7 +743,7 @@ Now that we have seen how the library size normalisation works, and that most li
 
 To address both issues 3. and 4. (that are by the way not corrected when you export using `DESeq2` `counts(dds,normalised=TRUE)` function call), we will use another `DESeq2` function called `varianceStabilizingTransformation()`
 
-```{r vst, exercise=TRUE, exercise.eval=FALSE}
+```{r vst, exercise=TRUE, exercise.eval=FALSE, exercise.setup="dds-rds"}
 vsd <- varianceStabilizingTransformation(dds, blind=TRUE)
 vst <- assay(vsd)
 vst <- vst - min(vst)
@@ -741,7 +755,14 @@ _Note_
 
 We can look now at what the `vst` has achieved.
 
-```{r htrscdstc, exercise=TRUE, exercise.eval=FALSE}
+```{r vst-rds, include=FALSE}
+counts <- readRDS(here("www/counts.rds"))
+dds <- readRDS(here("www/dds.rds"))
+vst <- readRDS(here("www/vst.rds"))
+```
+
+
+```{r htrscdstc, exercise=TRUE, exercise.eval=FALSE, exercise.setup="vst-rds"}
 library(vsn)
 meanSdPlot(counts[rowSums(counts)>0,])
 meanSdPlot(counts(dds)[rowSums(counts(dds))>0,])
@@ -759,7 +780,7 @@ Now, we will focus on a number of visualisation to perform the EDA of the normal
 
 The first step is to actually perform the PCA before visualising it. What we are interested in is to assess how similar samples are to each other. For that, we can use the _base_ `R` `prcomp` function. That function calculates the PCA by rows, so we will need to transpose our normalised data `t()` prior to computing the PCA. There is no need to re-invent that wheel, so just run the code below :-)
 
-```{r prcomp, exercise=TRUE, exercise.eval=FALSE}
+```{r prcomp, exercise=TRUE, exercise.eval=TRUE, exercise.setup="vst-rds"}
 pc <- prcomp(t(vst))
 (percent <- round(summary(pc)$importance[2,]*100))
 ```
@@ -781,7 +802,7 @@ A scree plot is a plot that visualise the cumulative variance explained by the c
 
 Again, here we can ignore the code and focus on the interpretation of the scree plot.
 
-```{r scree, exercise=TRUE, exercise.eval=FALSE}
+```{r scree, exercise=TRUE, exercise.eval=FALSE, exercise.setup="prcomp"}
 # variables in the model
 vars <- all.vars(design(dds))
 # number of variables
@@ -819,7 +840,7 @@ The scree plot main inflection point is (most probably) located at PC4, which wo
 
 Let us now visualise the components in two dimensions. We will iterate on the 4 first PCs.
 
-```{r twod, exercise=TRUE, exercise.eval=FALSE}
+```{r twod, exercise=TRUE, exercise.eval=FALSE, exercise.setup="prcomp"}
 dev.null <- apply(combn(1:4,2),2,function(co){
   pc.dat <- bind_cols(pc$x[,co],
                       as.data.frame(colData(dds)))
@@ -846,9 +867,9 @@ quiz(caption="What can we conclude?",
               ))
 ```
 
-The PCA reveals a worrying fact, which is that one of the main component (PC3, $12%$) is not easily explained by either variable we looked at. It could still be linked to a variable, we have not looked at, namely the replicates. Write the code to visualise the replicate instead of one of the other variable for the first and third component.
+The PCA reveals a worrying fact, which is that one of the main component (PC3, 12%) is not easily explained by either variable we looked at. It could still be linked to a variable, we have not looked at, namely the replicates. Write the code to visualise the replicate instead of one of the other variable for the first and third component.
 
-```{r twod_rep, exercise=TRUE, exercise.eval=FALSE}
+```{r twod_rep, exercise=TRUE, exercise.eval=FALSE, exercise.setup="prcomp"}
 
 ```
 
@@ -880,7 +901,13 @@ ggplot(pc.dat %>% rename_with(.cols=1:2,~c("x","y")),
 
 We have now observed that the principal components do explain most of the biological variance, while there is a worrying 12% effect due to replicate B, which is probably some type of technical induced artifact. We have now a good summarising idea of the sample properties, bu we certainly also want to have a closer understanding of the expression patterns across the samples. For that, we will generate a heat-map. Heat-maps are computationally expensive to create (as they rely on hierarchical clustering of genes and samples), so many tools in practice limit the number of genes used (the defaults vary between 500 and 1000 for DESeq2 and edgeR). I personally dislike such an approach, as the selection of a subset of gene might very well remove important signal. I am rather in favor of trying to remove genes which signal-to-noise ratio is too low to be informative. There are different ways to do that, but here we just use a naïve approach, where we will keep a gene provided it is expressed a given minimal cutoff, in all three replicates of at least one condition. Run the code below.
 
-```{r featSel, exercise=TRUE, exercise.eval=FALSE}
+```{r featSel-setup, include=FALSE}
+dds <- readRDS(here("www/dds.rds"))
+vst <- readRDS(here("www/vst.rds"))
+```
+
+
+```{r featSel, exercise=TRUE, exercise.eval=TRUE, exercise.setup="featSel-setup"}
 source(here("www/featureSelection.R"))
 conds <- factor(paste(dds$time,dds$treatment))
 sels <- rangeFeatureSelect(counts=vst,conditions=conds)
@@ -901,7 +928,7 @@ quiz(caption="Filtering uninformative (_i.e._ most lowly expressed) genes",
 
 Now that you have made a choice, change the `vst.cutoff` value in the code below and run it. It will take time, up to a few minutes to complete.
 
-```{r hm, exercise=TRUE, exercise.eval=FALSE,exercise.timelimit=600}
+```{r hm, exercise=TRUE, exercise.eval=FALSE,exercise.timelimit=600, exercise.setup="featSel"}
 # packages for the heat-map and pearson distance 
 suppressPackageStartupMessages({
   library(gplots)
