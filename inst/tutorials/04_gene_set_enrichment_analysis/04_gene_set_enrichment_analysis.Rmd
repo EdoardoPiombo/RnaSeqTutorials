@@ -3,7 +3,7 @@ title: "Gene Set Enrichment Analysis (GSEA)"
 author: "Nicolas Delhomme for Bn Bioinformatics"
 tutorial:
   id: "org.bnbio.tutorials.04_gene_set_enrichment_analysis"
-  version: 0.6.1
+  version: 0.7.0
 output:
   learnr::tutorial:
     progressive: true
@@ -14,8 +14,9 @@ runtime: shiny_prerendered
 <!-- todo move the heavy lifting from the setup chunk to dedicated exercise.setup calls -->
 
 ```{r setup, include=FALSE}
+# to run locally replace tutorials/04_gene_set_enrichment_analysis/www with inst/tutorials/04_gene_set_enrichment_analysis/www
 
-# to run locally replace www with tutorials/04_gene_set_enrichment_analysis/www
+# to run as an app replace tutorials/04_gene_set_enrichment_analysis/www with www
 
 # libraries
 suppressPackageStartupMessages({
@@ -40,7 +41,7 @@ tutorial_options(
   exercise.lines=20)
 
 # setup
-load(here("www/data.rda"))
+load(here("tutorials/04_gene_set_enrichment_analysis/www/data.rda"))
 
 # step to reproduce
 # ---
@@ -143,7 +144,7 @@ There must be another way to look at the data! Gene Set Enrichment Analysis (GSE
 
 GSEA aims at answering the question: is my list of genes (the gene set) associated with the experimental condition? For example, "are there unusually many de-regulated genes in my gene list?" or "is my DE gene list enriched for some functional processes?".
 
-Let us load the DE data we generated. The file is in "www/analysis/G03_vs_G02_at_T04_simple-model_DE-results.tsv".
+Let us load the DE data we generated. The file is in "tutorials/04_gene_set_enrichment_analysis/www/analysis/G03_vs_G02_at_T04_simple-model_DE-results.tsv".
 
 ```{r load, exercise=TRUE, exercise.eval=FALSE}
 
@@ -155,19 +156,111 @@ Let us load the DE data we generated. The file is in "www/analysis/G03_vs_G02_at
 ```
 
 ```{r load-solution}
-G03_vs_G02_at_T04_simple <- read_tsv(file=here("www/analysis/G03_vs_G02_at_T04_simple-model_DE-results.tsv"),show_col_types=FALSE)
+G03_vs_G02_at_T04_simple <- read_tsv(file=here("tutorials/04_gene_set_enrichment_analysis/www/analysis/G03_vs_G02_at_T04_simple-model_DE-results.tsv"),show_col_types=FALSE)
 ```
 
-Now, that we have restored the DE results in `R` from our simpler model data analysis (T04 only modelled as `~treatment`), we can start to do a gene ontology enrichment. There are many ways to do so, and many online tools too, but for now, we will use a `R` package called `topGO`. `topGO` is a package that was developed at the time when expression profiling was done on microarray and while the package is still relevant nowadays, the documentation has aged and is far from being comprehensive.
+Now, that we have restored the DE results in `R` from our simpler model data analysis (T04 only modeled as `~treatment`), we can start to do a gene ontology enrichment. There are many ways to do so, and many online tools too, but for now, we will use a `R` package called `topGO`. `topGO` is a package that was developed at the time when expression profiling was done on microarray and while the package is still relevant nowadays, the documentation has aged and is far from being comprehensive.
+
+## Gene Set Enrichement Analysis
+
+There are many Gene Set Enrichement Analysis (GSEA) methods, Bioconductor had as of November 2022, [146](http://bioconductor.org/packages/release/BiocViews.html#___GeneSetEnrichment) packages flagged as GSEA capable.
+
+Still, most of these rely on three approaches, reviewed in [Khatri et al., 2012](https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1002375). These are:
+
+* Over-representation analysis (ORA): are differentially expressed (DE) genes in the set more common than expected from the population?
+* Functional class scoring (FCS): summarize statistic of DE of genes in a set, and compare to a null (typically permutation of the sample labels)
+* Pathway topology (PT): include pathway knowledge in performing FCS, _e.g._ the number and type of interactions between gene products
+
+![Kathri _et al._, 2012, Figure 1](images/pcbi.1002375.g001.png){width=80%}
+
+You are probably already familiar with a number of tools and websites that offer GSEA, for example, [KEGG](https://www.genome.jp/kegg/), [Reactome](https://reactome.org/), and most certainly you have have heard or read about [Gene Ontology](http://geneontology.org/) enrichment. Let's have a GO at the later (sorry, bad pun...)
 
 ## Gene Ontology Enrichment
 
+### Gene Ontology
 
-<!-- TODO change that -->
+Gene Ontology (GO) is a controlled vocabulary that assign to a gene one-to-many:
 
-As we have seen in the lecture, there are a number of aspects we will need to manage, including the choice of test (Parent-Child if available) and the definition of the population.
+* Biological Process(es)
+* Cellular Component(s)
+* Molecular Function(s)
 
-<!-- turn it into a quiz -->
+The vocabulary is hierarchical, organised as a [directed acyclic graph](https://en.wikipedia.org/wiki/Directed_acyclic_graph) (DAG)
+
+![DAG example, where $a$ would be _e.g_ biological process, $c$ would be metabolism and $e$ cytochrome metabolic process ](images/Tred-G.png){width=50%}
+
+As one goes further away from the DAG root or its second highest level terms Biological Process, Cellular Component and Molecular Function, terms get more and more specific.
+
+### Enrichment
+
+#### Over Representation Analysis
+
+Gene Ontology Enrichment is commonly an Over Representation Analysis (ORA)) where we look for the over representation of Gene Ontology (GO) terms in a **set** of genes as compared to the rest of the **population**.
+
+A classical approach is a statistical analysis based on the one-sided Fisher's exact test (hypergeometric distribution).
+
+| |gene set|population|total|
+| :---: | :---: | :---: | :---: |
+|DE|k|K-k|K|
+|notDE|n-k|N+k-n-K|N-K|
+|total|n|N-n|N|
+
+```{r population-quizz}
+quiz(caption="A 'population'?",
+     question("What is it?",
+              answer("All the genes of the organism of interest"),
+              answer("All the genes expressed in the study",
+                     correct=TRUE),
+              answer("All the genes not in the gene-set")
+     ))
+```
+
+There are some caveats with the fisher test too. [Bauer S. _et al._, 2008](https://academic.oup.com/bioinformatics/article/24/14/1650/182451) expresses it this way:
+
+_A disadvantage of this method_ (Fisher's one sided exact test) _is that it ... disregards dependencies related to annotations ... a gene which is annotated to t is also annotated to all parent ... This leads to a problem if we consider multiple terms simultaneously: the chance of t being enriched is much higher if one or more of its parental terms is enriched._
+
+In other words, enrichment can propagate downwards through the DAG GO graph. To address this, (Grossmann _et al._,2007)[https://academic.oup.com/bioinformatics/article/23/22/3024/208216] and Bauer _et al._, proposed and implemented the `Parent-Child` test.
+
+![Term-for-Term _vs._ Parent-Child approaches](images/btm440f1.jpeg){width=80%}
+
+![Corresponding enrichment examples](images/btm440f2.jpeg){width=80%}
+
+Clearly the Parent-Child approach by considering the context of the enrichment might prevent the propagation of enrichment down the DAG tree.
+
+#### Functional Class Scoring
+
+There are other methods that have been developed to perform GO Enrichment, some of them using the Functional Class Scoring (FCS) GSEA approach, _e.g._ [Glass and Girvan, 2014](https://www.nature.com/articles/srep04191)
+
+![An outline of how Annotation Enrichment Analysis (AEA) calculates the significance of association between a given gene set and the collection of terms that belong to a branch in the GO hierarchy, Glass and Girvan, 2014.](images/srep04191_Fig3.webp){width=80%}
+
+#### Other limitations
+
+Gene ontology annotation (and any other annotation for that matter) are commonly inferred electronically from model organism.
+
+Does it matter? Yes. Take a look at the figure below showing the quality of the GO annotation of all plant species present in the PLAZA database. _Well characterized_ means that a gene is associated with 10 GO terms or more.
+
+![Work by Aaron Ayllon Benitez](images/PlazaAnnotations.pdf){width=80%}
+
+Only the model organism _Arabidopsis thaliana_ is decently annotated. If we look into further details at the type of annotation, the vast majority of plants, but the most studied ones, have only annotation of the type "Inferred from Electronic Annotation" (IEA).
+
+![Work by Aaron Ayllon Benitez](images/evidences.pdf){width=80%}
+
+```{r limitation-quizz}
+quiz(caption="Limitations",
+     question("Which of the following are limitations of a GSEA?",
+              answer("The annotation are partial",correct=TRUE),
+              answer("The database are only informed by what scientists study",correct=TRUE),
+              answer("Model organism suffer from a lack of annotation",correct=TRUE),
+              answer("Model organism suffer from a lack of manually verified annotation",correct=TRUE),
+              try_again=TRUE,
+              post_message="And the list goes on and on..."
+     ))
+```
+
+### TopGO
+#### Population
+
+As we have seen, there are a number of aspects we will need to manage, including the choice of test (Parent-Child if available) and the definition of the population.
 
 We start with the latter. Use the following code block to extract the population we will compare our set to. Just a few reminders, the population cannot be the whole gene catalog, as not all genes are expressed. Then, should genes that are expressed below the signal to noise cutoff even be considered? After-all they are uninformative. One way to identify the genes rejected by DESeq() during its independent filtering step is to look for genes which have a `NA` value as their FDR (padj). Use the following block to define your population.
 
@@ -191,7 +284,7 @@ population <- G03_vs_G02_at_T04_simple %>% filter(!is.na(padj)) %>% dplyr::selec
 
 Next, we will set up the objects needed for `topGO`. That information was devised from the `topGo` package vignette.
 
-### Score
+#### Score
 We need to have a vector that contains the scores (_e.g._ padj), as a named vector. The names need to be the gene ID that will be present in our GO annotation.
 
 ```{r genelist, exercise=TRUE, exercise.eval=FALSE}
@@ -199,7 +292,7 @@ population.score <- population$padj
 names(population.score) <- sub("\\.\\d+","",population$geneID)
 ```
 
-### Significance
+#### Significance
 We need a function to define the genes / scores that are significant
 
 ```{r genesel, exercise=TRUE, exercise.eval=FALSE}
@@ -216,7 +309,7 @@ lfc=0.5
 population.score[abs(population$log2FoldChange) <= lfc] <- 1
 ```
 
-### Annotation
+#### Annotation
 
 Finally, we need to define which Annotation to use. There the documentation of `topGO` is laconic. I figured out that we can use the `org` annotation package from Bioconductor, provide them as a `mapping` and define which `ID` should be used to identify the genes:
 
@@ -224,7 +317,7 @@ Finally, we need to define which Annotation to use. There the documentation of `
 2. `mapping="org.Hs.eg.db"`
 3. `ID="ensembl"`
 
-### Bringing it all together
+#### Bringing it all together
 
 <!-- TODO hints -->
 
@@ -242,7 +335,7 @@ GOdata <- new("topGOdata",
               ID="ensembl")
 ```
 
-### Testing
+#### Testing
 
 Now that the object is set up (it has retrieved the annotation and linked our gene set), we can define the testing. `topGO` supports the `Parent Child` test, but again, it took a while to find that information.
 
@@ -251,7 +344,7 @@ test.stat <- new("parentChild",testStatistic = GOFisherTest, name = "Parent Chil
 resultPC <- getSigGroups(GOdata, test.stat)
 ```
 
-### Multiple testing correction.
+#### Multiple testing correction.
 
 Observe the `topGO` does not do any by default. As this is IMO recommendable, we run a Benjamini-Hochberg correction:
 
@@ -259,7 +352,7 @@ Observe the `topGO` does not do any by default. As this is IMO recommendable, we
 FDR <- p.adjust(score(resultPC),method="BH")
 ```
 
-### Results
+#### Results
 
 That's it! We have performed our enrichment! Let's look at the results:
 
@@ -372,7 +465,7 @@ FDR <- p.adjust(score(resultPC),method="BH")
 suppressPackageStartupMessages(showSigOfNodes(GOdata, FDR, firstSigNodes = 5, useInfo = 'def'))
 ```
 
-## Assessment
+## Methods comparison
 
 Are the `parent-child` results significantly different than the default of *topGO*, _i.e._ `weight01`? What about the `classic` and `elim` methods?
 
