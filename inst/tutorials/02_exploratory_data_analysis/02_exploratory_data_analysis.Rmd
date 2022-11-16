@@ -28,10 +28,10 @@ tutorial_options(
   exercise.reveal_solution=TRUE)
 
 # helpers
-source(here("www/featureSelection.R"))
+source(here("tutorials/02_exploratory_data_analysis/www/featureSelection.R"))
 
 # data
-sample_file <- here("www/samples_table.tsv")
+sample_file <- here("tutorials/02_exploratory_data_analysis/www/samples_table.tsv")
 samples <- read_tsv(sample_file,col_types=c("cfff"))
 
 # step to reproduce
@@ -100,10 +100,10 @@ As mentioned, this tutorial focuses on point 1, which includes the following ste
 
 ## Metadata
 
-We have translated the information from the study abstract into a file called [samples_table.tsv](www/samples_table.tsv), which looks like:
+We have translated the information from the study abstract into a file called [samples_table.tsv](tutorials/02_exploratory_data_analysis/www/samples_table.tsv), which looks like:
 
 ```{r sample,echo=FALSE}
-read_tsv(here("www/samples_table.tsv"),show_col_types=FALSE)
+read_tsv(here("tutorials/02_exploratory_data_analysis/www/samples_table.tsv"),show_col_types=FALSE)
 ```
 
 The metadata looks pretty _tidy_, let us see how we can load it in R.
@@ -119,7 +119,7 @@ Write the code to import the data in `R`
 ```{r metadata, exercise=TRUE, exercise.eval=TRUE, exercise.lines = 5}
 library(here)
 library(readr)
-sample_file <- here("www/samples_table.tsv")
+sample_file <- here("tutorials/02_exploratory_data_analysis/www/samples_table.tsv")
 
 ```
 
@@ -142,7 +142,7 @@ samples <- read_tsv(sample_file)
 There is a lot more options that can be used to tune importing the data. The `R` language has its origin has a statistical language. Many of the variables we have in our metadata are actually categorical variables, which are best represented in `R` as `factor`s. Re-read the metadata setting the relevant columns as factors.
 
 ```{r metadata2, exercise=TRUE, exercise.eval=TRUE, message=FALSE, exercise.setup="metadata"}
-sample_file <- here("www/samples_table.tsv")
+sample_file <- here("tutorials/02_exploratory_data_analysis/www/samples_table.tsv")
 samples <- read_tsv(sample_file)
 ```
 
@@ -293,7 +293,7 @@ txi <- tximport(<QUANT.SF_FILES>,type="salmon",tx2gene=<TX2GENE>,varReduce=TRUE)
 where `<QUANT.SF_FILES>` was the character vector of the salmon results' quant.sf files, <TX2GENE> is a simple tab delimited file containing for every transcript ID, the corresponding gene ID. Note that salmon was used in a mode that bootstraps the quantification (since it is an expectation-maximisation process) typically a 100 times. This allows to devise per-sample inferential replicate information, which was then summarised by setting `varReduce=TRUE`. The `txi` object was saved and we now load it into our session.
 
 ```{r tximport, exercise=TRUE, exercise.eval=FALSE, exercise.setup="metadata2"}
-txi <- readRDS(here("www/tximport.rds"))
+txi <- readRDS(here("tutorials/02_exploratory_data_analysis/www/tximport.rds"))
 
 ```
 
@@ -380,7 +380,7 @@ counts <- round(txi$counts)
 
 Now, it is very important that we do some sanity checking. Our metadata and data are two **SEPARATE** entities. We need to ensure that they are from the same studies, that samples are the same and most importantly sorted in the same order! Give it a try.
 ```{r counts-pre, include=FALSE}
-counts <- readRDS(here("www/counts.rds"))
+counts <- readRDS(here("tutorials/02_exploratory_data_analysis/www/counts.rds"))
 ```
 
 ```{r sanity, exercise=TRUE, exercise.eval=FALSE, exercise.setup="counts-pre"}
@@ -448,7 +448,7 @@ Another important initial assessment is to evaluate the discrepancy (if any) in 
 
 First, write the code to reproduce the following object:
 ```{r tibble-view, echo=FALSE, eval=TRUE}
-counts <- readRDS(file=here("www/counts.rds"))
+counts <- readRDS(file=here("tutorials/02_exploratory_data_analysis/www/counts.rds"))
 tibble(x=colnames(counts),
        y=colSums(counts)) %>% 
   bind_cols(samples)
@@ -663,7 +663,7 @@ dds <- DESeqDataSetFromTximport(
 See the warning we got? Well, up there reading the metadata, the last command reset samples to have all columns as characters. This is `R` default since version 4, but in previous versions, factors were the default to represent alphanumeric values.
 
 ```{r dds-rds, include=FALSE}
-dds <- readRDS(here("www/dds.rds"))
+dds <- readRDS(here("tutorials/02_exploratory_data_analysis/www/dds.rds"))
 ```
 
 Before we proceed, take a few instants to familiarise with the `DESeqDataSet` object.
@@ -756,9 +756,9 @@ _Note_
 We can look now at what the `vst` has achieved.
 
 ```{r vst-rds, include=FALSE}
-counts <- readRDS(here("www/counts.rds"))
-dds <- readRDS(here("www/dds.rds"))
-vst <- readRDS(here("www/vst.rds"))
+counts <- readRDS(here("tutorials/02_exploratory_data_analysis/www/counts.rds"))
+dds <- readRDS(here("tutorials/02_exploratory_data_analysis/www/dds.rds"))
+vst <- readRDS(here("tutorials/02_exploratory_data_analysis/www/vst.rds"))
 ```
 
 
@@ -902,8 +902,8 @@ ggplot(pc.dat %>% rename_with(.cols=1:2,~c("x","y")),
 We have now observed that the principal components do explain most of the biological variance, while there is a worrying 12% effect due to replicate B, which is probably some type of technical induced artifact. We have now a good summarising idea of the sample properties, bu we certainly also want to have a closer understanding of the expression patterns across the samples. For that, we will generate a heat-map. Heat-maps are computationally expensive to create (as they rely on hierarchical clustering of genes and samples), so many tools in practice limit the number of genes used (the defaults vary between 500 and 1000 for DESeq2 and edgeR). I personally dislike such an approach, as the selection of a subset of gene might very well remove important signal. I am rather in favor of trying to remove genes which signal-to-noise ratio is too low to be informative. There are different ways to do that, but here we just use a naïve approach, where we will keep a gene provided it is expressed a given minimal cutoff, in all three replicates of at least one condition. Run the code below.
 
 ```{r featSel-setup, include=FALSE}
-dds <- readRDS(here("www/dds.rds"))
-vst <- readRDS(here("www/vst.rds"))
+dds <- readRDS(here("tutorials/02_exploratory_data_analysis/www/dds.rds"))
+vst <- readRDS(here("tutorials/02_exploratory_data_analysis/www/vst.rds"))
 ```
 
 
