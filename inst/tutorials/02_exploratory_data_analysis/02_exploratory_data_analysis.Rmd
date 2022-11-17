@@ -3,7 +3,7 @@ title: "Exploratory Data Analysis (EDA), _a.k.a._ Biological Quality Assessment"
 author: "Nicolas Delhomme for Bn Bioinformatics"
 tutorial:
   id: "org.bnbio.tutorials.02_exploratory_data_analysis"
-  version: 0.6.0
+  version: 0.6.1
 output:
   learnr::tutorial:
     progressive: true
@@ -472,7 +472,7 @@ dat <- tibble(x=colnames(counts),y=colSums(counts)) %>%
 
 Now that we have the data in the correct shape, visualise it using ggplot.
 
-```{r barplot, exercise=TRUE, exercise.eval=FALSE, exercise.lines = 5, exercise.setup="tibble"}
+```{r barplot, exercise=TRUE, exercise.eval=FALSE, exercise.lines = 10, exercise.setup="tibble"}
 dat <- tibble(x=colnames(counts),y=colSums(counts)) %>% 
   bind_cols(samples)
 
@@ -556,7 +556,7 @@ dat <- as.data.frame(log10(counts)) %>%
 
 Now that we have the data in the right shape, we can visualise it. For that we can use the density geom, and as while we want to visualise the individual samples, we need to have a corresponding `group` aesthetic.
 
-```{r density, exercise=TRUE, exercise.eval=FALSE, exercise.lines=10, exercise.setup="pivot"}
+```{r density, exercise=TRUE, exercise.eval=FALSE, exercise.lines=18, exercise.setup="pivot"}
 dat <- as.data.frame(log10(counts)) %>% 
   rownames_to_column() %>% 
   pivot_longer(starts_with("SRR"),
@@ -643,7 +643,7 @@ Now that we know the theory, put it in practice using the `DESeq2` package. Firs
 $$expression = f(treatment + time + treatment:time)$$
 We will revisit this concept in the next tutorial, for now, just know that in `R`, we write the previous equation as `~ time * treatment`
 
-```{r dds, exercise=TRUE, exercise.eval=FALSE}
+```{r dds, exercise=TRUE, exercise.eval=FALSE, exercise.setup="tximport"}
 suppressPackageStartupMessages(library(DESeq2))
 ```
 
@@ -744,7 +744,7 @@ Now that we have seen how the library size normalisation works, and that most li
 
 To address both issues 3. and 4. (that are by the way not corrected when you export using `DESeq2` `counts(dds,normalised=TRUE)` function call), we will use another `DESeq2` function called `varianceStabilizingTransformation()`
 
-```{r vst, exercise=TRUE, exercise.eval=FALSE, exercise.setup="dds-rds"}
+```{r vst, exercise=TRUE, exercise.eval=FALSE, exercise.timelimit=600, exercise.setup="dds-rds"}
 vsd <- varianceStabilizingTransformation(dds, blind=TRUE)
 vst <- assay(vsd)
 vst <- vst - min(vst)
@@ -928,7 +928,7 @@ quiz(caption="Filtering uninformative (_i.e._ most lowly expressed) genes",
 
 Now that you have made a choice, change the `vst.cutoff` value in the code below and run it. It will take time, up to a few minutes to complete.
 
-```{r hm, exercise=TRUE, exercise.eval=FALSE,exercise.timelimit=600, exercise.setup="featSel"}
+```{r hm, exercise=TRUE, exercise.eval=FALSE, exercise.timelimit=600, exercise.lines=20, exercise.setup="featSel"}
 # packages for the heat-map and pearson distance 
 suppressPackageStartupMessages({
   library(gplots)
