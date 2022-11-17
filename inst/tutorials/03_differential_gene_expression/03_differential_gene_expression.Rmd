@@ -187,7 +187,7 @@ Once `DESeq()` has estimated all the parameters it needs, it will apply its mode
 
 Every test will return a test score associated with a significance value; a p-value. Do you recall statistics 101?
 
-**The p-value is the probability of obtaining a test statistic at least as extreme as the one observed, if the null hypothesis is true** (_i.e. if there is not true signal in the data).
+**The p-value is the probability of obtaining a test statistic at least as extreme as the one observed, if the null hypothesis is true** ( _i.e._ if there is not true signal in the data).
 
 ```{r p-value-quiz}
 quiz(caption="Probabilities",
@@ -363,7 +363,7 @@ ggplot(Animals,aes(x=body,y=brain)) +
   geom_smooth(method=lm,se=FALSE)
 ```
 
-Clearly, this does not look like a great fit. Nonetheless, we can model that data using a linear model (`lm()`) using the following `formula`: `brain ~ body`; _i.e._ $brain = f(body)$ and then look at its fit. For that we can look at the $\sum{residuals^{2}}$ as well as its $R^{2}$ value.
+Clearly, this does not look like a great fit. Nonetheless, we can model that data using a linear model (`lm()`) using the following `formula`: `brain ~ body`; _i.e._ $brain = f(body)$ and then look at its fit. For that we can look at the $\sum{residuals^{2}}$ as well as its $R^{2}$ value. You can use the `deviance()` and `summary()` functions to look at these respectively
 
 ```{r lm, exercise=TRUE, exercise.eval=TRUE}
 # We fit a linear model (lm)
@@ -372,13 +372,26 @@ Clearly, this does not look like a great fit. Nonetheless, we can model that dat
 # and finally get the R2 value
 
 fit <- lm(data=Animals,brain ~ body)
+```
 
+```{r lm-hint}
+?sum
+?resid
+?`^`
+?deviance
+?summary
+```
+
+```{r lm-solution}
+# the sum of squared residuals
 sum(resid(fit)^2)
-
+# same as a function
 deviance(fit)
-
+# the R^2
 summary(fit)$r.squared
 ```
+
+
 
 Without a comparison, it is hard to know whether the $\sum{residuals^{2}}$ is a good value or not, but as we know the smaller, the better, we seem pretty off here. And the 
 $R^{2}$, which goes from 0 to 1 (a perfect fit), is also clearly underwhelming. 
@@ -421,12 +434,14 @@ quiz(caption="Good enough?",
 
 ```
 
-The simple linear model we used $y=ax+b$ seem to be above most values for low body weight and above for high body weight. We could try a polynomial (_poly()_) model (or a more robust natural spline _ns()_)
+The simple linear model we used $y=ax+b$ seem to be above most values for low body weight and above for high body weight. We could try a polynomial (_poly()_) model (or a more robust natural spline _ns()_) Extend the following code to visualise the $\sum{residuals^{2}}$ and $R^{2}$. Plot the new model
 
 
-```{r poly, exercise=TRUE, exercise.eval=TRUE}
+```{r poly, exercise=TRUE, exercise.eval=TRUE, exercise.lines=10}
 fit <- lm(data=Animals,log10(brain) ~ poly(log10(body),2))
+```
 
+```{r poly-solution}
 deviance(fit)
 
 summary(fit)$r.squared
@@ -786,9 +801,9 @@ quiz(caption="Looking for G03 _vs._ G02 at T04",
               answer("c(0,0,1,1)",correct=TRUE)))
 ```
 
-Take a minute to reflect on how that is different from `timeT04.treatmentG03` 
+Question: Take a minute to reflect on how that is different from `timeT04.treatmentG03` 
 
-(T04 at G03 of expression the to contribution specific the, term interaction an is timeT04.treatmentG03 that is answer the <-- read from right to left.)
+Answer: (T04 at G03 of expression the to contribution specific the, term interaction an is timeT04.treatmentG03 that is answer the) <-- read the answer from right to left.
 
 As you can see, there are multiple ways to write contrasts, which is why it is important (IMO) to visualise the results and assess whether we got the contrasts right.
 
@@ -908,7 +923,7 @@ dds_T04$time <- droplevels(dds_T04$time)
 ```
 
 Now that we have our subset, use the following block to re-run `DESeq()` on it. 
-```{r subset-de, exercise=TRUE, exercise.eval=FALSE, exercise.setup="dds_T04"}
+```{r subset-de, exercise=TRUE, exercise.eval=FALSE, exercise.setup="dds_T04", exercise.lines=5, exercise.timelimit=600}
 
 ```
 
