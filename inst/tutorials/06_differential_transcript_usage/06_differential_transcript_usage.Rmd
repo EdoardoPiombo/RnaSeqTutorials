@@ -3,7 +3,7 @@ title: "Differential Transcript Usage using DRIMSeq"
 author: "Nicolas Delhomme for Bn Bioinformatics"
 tutorial:
   id: "org.bnbio.tutorials.06_differential_transcript_usage"
-  version: 0.1
+  version: 0.2.0
 output:
   learnr::tutorial:
     progressive: true
@@ -13,7 +13,9 @@ runtime: shiny_prerendered
 
 ```{r setup, include=FALSE}
 
-# to run locally replace www with tutorials/06_differential_transcript_usage/www
+# to run locally replace tutorials/06_differential_transcript_usage/www with inst/tutorials/06_differential_transcript_usage/www
+
+# to run in an app replace tutorials/06_differential_transcript_usage/www with www
 
 # libraries
 suppressPackageStartupMessages({
@@ -30,8 +32,7 @@ suppressPackageStartupMessages({
 # options
 knitr::opts_chunk$set(echo = FALSE)
 tutorial_options(
-  exercise.reveal_solution=TRUE,
-  exercise.lines=10)
+  exercise.reveal_solution=TRUE)
 
 ```
 
@@ -107,19 +108,23 @@ Let's give a shot at `DRIMSeq`. To retrieve the help page, we only need to looku
 
 ```{r vignette, exercise=TRUE, exercise.eval=FALSE}
 vignette(package="DRIMSeq")
-vignette("DRIMSeq",package="DRIMSeq")
 ``` 
+
+This next command, you will want to run in RStudio, not in the tutorial:
+```{r display-vignette, eval=FALSE, echo=TRUE}
+vignette("DRIMSeq",package="DRIMSeq")
+```
 
 ## Data preparation
 
 As in the vignette, we are preparing the samples and counts data. While preparing the samples is easy, we need to do some reworking on the data. 
 
-```{r prep, exercise=TRUE, exercise.eval=TRUE}
+```{r prep, exercise=TRUE, exercise.eval=TRUE, exercise.lines=10}
 suppressPackageStartupMessages({
   library(here)
   library(tidyverse)
   })
-sample_file <- here("www/samples_table.tsv")
+sample_file <- here("tutorials/06_differential_transcript_usage/www/samples_table.tsv")
 samples <- read_tsv(sample_file,col_types=c("cfff")) %>% as.data.frame() %>% 
   rename(group="treatment")
 ```
@@ -133,7 +138,7 @@ suppressPackageStartupMessages({
   library(EnsDb.Hsapiens.v86)
   library(tximport)
   })
-txi <- readRDS(here("www/tximport.rds"))
+txi <- readRDS(here("tutorials/06_differential_transcript_usage/www/tximport.rds"))
 
 txi$counts <- makeCountsFromAbundance(txi$counts,txi$abundance,txi$length,countsFromAbundance="scaledTPM")
 
@@ -190,18 +195,22 @@ There are 4 filters:
 
 As a first step to the filtering, we use `tidyverse` to tidy the counts and visualise them as a density plot per sample. 
 
-```{r filter, exercise=TRUE, exercise.eval=TRUE, exercise.setup="constructor"}
+```{r filter-view, exercise=TRUE, exercise.eval=TRUE, exercise.setup="constructor", exercise.lines=6}
 counts(d)[,-(1:2)] %>% 
   pivot_longer(cols=everything(),names_to="sample_id",values_to="x") %>%
   dplyr::filter(x!=0) %>% 
   ggplot(aes(x=log1p(x),group=sample_id,col=sample_id)) + geom_density() +
   geom_vline(xintercept=log1p(10))
+```
 
+Using a cutoff as in the package vignette, seem acceptable.
+
+```{r filter, exercise=TRUE, exercise.eval=TRUE, exercise.setup="constructor"}
 (d <- dmFilter(d, min_samps_gene_expr = 12, min_samps_feature_expr = 3,
                min_gene_expr = 10, min_feature_expr = 10))
 ```
 
-Using a cutoff as in the package vignette, seem acceptable. We can now move on, define the model and extract the parameters.
+We can now move on, define the model and extract the parameters.
 
 ### Precision estimation
 To calculate the precision estimate, we face the same problem as for the Differential Gene Expression (DGE), _i.e._ that we have few samples.
@@ -226,17 +235,20 @@ BPPARAM = BiocParallel::MulticoreParam(workers=92L)
 ```
 
 ```{r save, include=FALSE, eval=FALSE}
-save(d,design_full,file=here("www/dmDSdata.rda"))
+save(d,design_full,file=here("tutorials/06_differential_transcript_usage/www/dmDSdata.rda"))
 ```
 
 ```{r precision-setup}
-d <- readRDS(file=here("www/dmDSdata.rds"))
+d <- readRDS(file=here("tutorials/06_differential_transcript_usage/www/dmDSdata.rds"))
 ```
 
 We can take a look at the precision estimation results.
 
 ```{r precision, exercise=TRUE, exercise.eval=TRUE}
 common_precision(d)
+```
+
+```{r precision-plot, exercise=TRUE, exercise.eval=TRUE}
 plotPrecision(d)
 ```
 
@@ -253,11 +265,11 @@ This also takes a couple minutes to ran, so here again, we just load it in the b
 ```
 
 ```{r save2, include=FALSE, eval=FALSE}
-saveRDS(d,file=here("www/dmDSfit.rds"))
+saveRDS(d,file=here("tutorials/06_differential_transcript_usage/www/dmDSfit.rds"))
 ```
 
 ```{r dtu-setup}
-d <- readRDS(file=here("www/dmDSfit.rds"))
+d <- readRDS(file=here("tutorials/06_differential_transcript_usage/www/dmDSfit.rds"))
 ```
 
 ```{r fit-display, eval=TRUE, echo=FALSE}
@@ -274,11 +286,11 @@ This is done by fitting two models, a `null` and a `full`. Then likelihood ratio
 ```
 
 ```{r save3, include=FALSE, eval=FALSE}
-saveRDS(d,file=here("www/dmDStest.rds"))
+saveRDS(d,file=here("tutorials/06_differential_transcript_usage/www/dmDStest.rds"))
 ```
 
 ```{r assess-setup}
-d <- readRDS(file=here("www/dmDStest.rds"))
+d <- readRDS(file=here("tutorials/06_differential_transcript_usage/www/dmDStest.rds"))
 ```
 
 ```{r test-display, eval=TRUE, echo=FALSE}
@@ -293,10 +305,13 @@ Now that this is done, we can look at the results!
 
 #### Assessment
 
-Here we want to ensure that the p-values are uniformely distributed.
+Here we want to ensure that the p-values are uniformly distributed.
 
 ```{r assess, exercise=TRUE, exercise.eval=TRUE}
 plotPValues(d)
+```
+
+```{r assess2, exercise=TRUE, exercise.eval=TRUE}
 plotPValues(d,level="feature")
 ```
 
@@ -306,22 +321,26 @@ This looks fairly good. Let us look at the results.
 
 ####  Results
 
-Fill free to select different genes to visualise.
+Extract and sort the results by FDR
 
-```{r results, exercise=TRUE, exercise.eval=TRUE, exercise.setup="assess-setup"}
+```{r results, exercise=TRUE, exercise.eval=TRUE, exercise.setup="assess-setup", exercise.lines=5}
 res <- results(d)
 res <- res[order(res$pvalue, decreasing = FALSE), ]
-top_gene_id <- res$gene_id[3]
 ```
 
+Fill free to select different genes to visualise.
 
 ```{r plots, exercise=TRUE, exercise.eval=TRUE, exercise.setup="results"}
-plotProportions(d, gene_id = top_gene_id, group_variable = "group")
+plotProportions(d, gene_id = res$gene_id[3], group_variable = "group")
+```
 
-plotProportions(d, gene_id = top_gene_id, group_variable = "group",
+```{r plots2, exercise=TRUE, exercise.eval=TRUE, exercise.setup="results"}
+plotProportions(d, gene_id = res$gene_id[3], group_variable = "group",
                 plot_type = "lineplot")
+```
 
-plotProportions(d, gene_id = top_gene_id, group_variable = "group",
+```{r plots3, exercise=TRUE, exercise.eval=TRUE, exercise.setup="results"}
+plotProportions(d, gene_id = res$gene_id[3], group_variable = "group",
                 plot_type = "boxplot1")
 ```
 
@@ -360,17 +379,26 @@ Finally, we can take a look at the results
 
 ```{r signif, exercise=TRUE, exercise.eval=TRUE, exercise.setup="stageR"}
 head(getSignificantGenes(stageRObj))
+```
+
+```{r signif2, exercise=TRUE, exercise.eval=TRUE, exercise.setup="stageR"}
 head(getSignificantTx(stageRObj))
+```
+
+```{r signif3, exercise=TRUE, exercise.eval=TRUE, exercise.setup="stageR", exercise.lines=5}
 all <- getAdjustedPValues(stageRObj, order = TRUE,
                            onlySignificantGenes = FALSE)
 head(all)
+```
+
+```{r signif4, exercise=TRUE, exercise.eval=TRUE, exercise.setup="signif3"}
 padj <- getAdjustedPValues(stageRObj, order = TRUE,
                            onlySignificantGenes = TRUE)
 ```
 
 We can lookup the most significant gene:
 
-```{r gene, exercise=TRUE, exercise.eval=TRUE, exercise.setup="signif"}
+```{r gene, exercise=TRUE, exercise.eval=TRUE, exercise.setup="signif", exercise.lines=6}
 suppressPackageStartupMessages(library(org.Hs.eg.db))
 AnnotationDbi::select(x=org.Hs.eg.db,
                       keys="ENSG00000117682",
@@ -382,7 +410,7 @@ The top gene is [DHDDS](https://www.uniprot.org/uniprotkb/Q86SQ9/entry): _dehydr
 
 We can also compare the significant genes prior and after running stageR.
 
-```{r ggvenn, exercise=TRUE, exercise.eval=TRUE, exercise.setup="signif"}
+```{r ggvenn, exercise=TRUE, exercise.eval=TRUE, exercise.setup="signif4", exercise.lines=5}
 suppressPackageStartupMessages(library(ggvenn))
 ggvenn(list(prior=res$gene_id[res$adj_pvalue <= 0.05 & ! is.na(res$adj_pvalue)],
        posterior=padj$geneID))
@@ -390,13 +418,22 @@ ggvenn(list(prior=res$gene_id[res$adj_pvalue <= 0.05 & ! is.na(res$adj_pvalue)],
 
 We can have a look at the genes dropped after `stageR`
 
-```{r dropped,exercise=TRUE, exercise.eval=TRUE, exercise.setup="signif"}
+```{r dropped, exercise=TRUE, exercise.eval=TRUE, exercise.setup="signif4"}
 (goi <- setdiff(res$gene_id[res$adj_pvalue <= 0.05 & ! is.na(res$adj_pvalue)],padj$geneID))
+```
 
-dev.null <- sapply(goi,function(g){print(plotProportions(d, gene_id = g, group_variable = "group",plot_type = "boxplot1"))})
+Now we can visualise them
 
+```{r dropped2, exercise=TRUE, exercise.eval=TRUE, exercise.setup="dropped", exercise.lines=5, exercise.timelimit=300}
+dev.null <- sapply(goi,function(g){
+  print(plotProportions(d, gene_id = g, group_variable = "group",plot_type = "boxplot1"))
+})
+```
+
+And look up their p-values
+
+```{r dropped3, exercise=TRUE, exercise.eval=TRUE, exercise.setup="dropped2"}
 unique(all[all$geneID %in% goi,"gene"])
-
 ```
 
 Their p-values are obviously very close to the prior cutoff we chose.
