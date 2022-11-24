@@ -872,3 +872,17 @@ This material is provided under the following license:
 `CC-BY-NC-SA 4.0:` _Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International Public License_
 
 by **BN Bioinformatics Handelsbolag**
+
+<!-- Remember from Petri Törönen (UH)
+
+3: Why I dislike MIT GSEA method (long story):
+I noticed in my first enrichment article that there is something quite weird in that method. I looked at their mathematics then. (Not checking this now. Might have small errors here)
+1. They calculate differential gene expression score per gene
+2. They order genes with differential expression values (DEVs)
+3. They take all genes of studied class X
+4. They sum the absolute DEV of genes in X
+5. They get score Y by dividing each DEV with this sum
+6. They use Y as weight for each gene in X
+....
+Check the steps 4, 5 and 6. When gene gets a maximal weight? Lets take a group X_{test} that has small DEVs among its members. Take the gene Z with largest differential expression, and start increasing it. The larger the DEV of Z is in proportion to total sum of DEVs in X_{test}, the stronger the impact of Z is on the result. So a GO class with one strong outlier will get a really strong result!!!
+-->

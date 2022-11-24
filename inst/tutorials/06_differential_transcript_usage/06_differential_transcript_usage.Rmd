@@ -158,7 +158,7 @@ counts <- tx2gene %>% rename(c(gene_id="GENEID",feature_id="TXID")) %>%
 Now that the data and samples are sorted out, we can proceed.
 
 ## Differential Transcript Usage
-### Initation
+### Initialization
 
 Here we simply use the `dmDSdata()` constructor.
 
