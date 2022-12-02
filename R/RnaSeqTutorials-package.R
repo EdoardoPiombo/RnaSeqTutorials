@@ -11,9 +11,9 @@
 # ---
 # library(here)
 # pkgs <- c("ComplexHeatmap","DESeq2","DOSE","DRIMSeq","EGSEA","EGSEAdata",
-# "EnsDb.Hsapiens.v86","GOfuncR","MASS","UpSetR","edgeR","enrichplot","ggvenn",
-# "gplots","here","hyperSpec","learnr","limma","org.Hs.eg.db","palmerpenguins",
-# "stageR","tidyverse","topGO","tximport","vsn")
+# "EnsDb.Hsapiens.v86","GOfuncR","MASS","UpSetR","edgeR","enrichplot","europepmc",
+# "ggridges","ggvenn","gplots","here","hyperSpec","learnr","limma","org.Hs.eg.db",
+# "palmerpenguins","stageR","tidyverse","topGO","tximport","vsn")
 # write(paste0("    ",pkgs," (>= ",unlist(installed.packages()[pkgs,"Version"],use.names=FALSE),"),"),
 #       file="Imports.tmp")
 # ---
