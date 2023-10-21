@@ -18,7 +18,6 @@ Depends:
     EGSEA (>= 1.24.0),
     EGSEAdata (>= 1.24.0),
     EnsDb.Hsapiens.v86 (>= 2.99.0),
-#    GOfuncR (>= 1.16.0),
     MASS (>= 7.3-58.1),
     UpSetR (>= 1.4.0),
     edgeR (>= 3.38.4),
