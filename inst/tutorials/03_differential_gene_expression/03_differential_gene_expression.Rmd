@@ -610,8 +610,8 @@ Here, we drop the origin (0) from the formula, so one condition will be used as 
 
 ```{r origin-quiz}
 quiz(caption="How do the two formula compare?",
-     question("What is the `treatmenttreated` in the second formula equivalent to in the first?",
-              answer("`treatmenttreated`"),
+     question("What is the treatmenttreated in the second formula equivalent to in the first?",
+              answer("treatmenttreated"),
               answer("treatmenttreated - treatmentcontrol",correct=TRUE),
               answer("treatmenttreated / treatmentcontrol"),
               answer("They are not comparable")))
@@ -639,7 +639,7 @@ quiz(caption="Blocking...",
 
 ![`~treatment * genotype`](images/design_treatment_by_time.png){width=80%}
 
-Here, and that's probably the most common case, we **cannot** assume that both variables are independent, so we factored in an `interaction term`. From the image it is obvious that the effects of the treatment in the genotype A (blue) and the effect of the genotype B among control samples (red) do not explain the expression values observed in the treated genotype B condition. By summing the contribution of red and blue, we can derive the effect of the treatment in genotype B (green). 
+Here, and that is probably the most common case, we **cannot** assume that both variables are independent, so we factored in an interaction term. From the image it is obvious that the effects of the treatment in the genotype A (blue) and the effect of the genotype B among control samples (red) do not explain the expression values observed in the treated genotype B condition. By summing the contribution of red and blue, we can derive the effect of the treatment in genotype B (green). 
 
 ```{r crossed-quiz}
 quiz(caption="Comparing treatment in genotypes",
@@ -711,7 +711,7 @@ quiz(caption="Contrast by default",
               answer("The average expression in G03 at T04 compared to the baseline",message="Take a look at the `~treatment * time` example in the previous chapter..."),
               answer("The average contribution to the expression level that is specifically attributable to G03 at T04",correct=TRUE),
               try_again=TRUE),
-     question("How do we extraxt a similar information at `T03`?",
+     question("How do we extract a similar information at `T03`?",
               answer("By looking at the `time_T04_vs_T03` contrast",message="That would look at the time effect in the control samples."),
               answer("By looking at the `treatment_G03_vs_G02` contrast",correct=TRUE),
               try_again=TRUE, post_message="Excellent, give it a try below!")
