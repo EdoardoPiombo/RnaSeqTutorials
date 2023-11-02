@@ -3,7 +3,7 @@ title: "Exploratory Data Analysis (EDA), _a.k.a._ Biological Quality Assessment"
 author: "Nicolas Delhomme for Bn Bioinformatics"
 tutorial:
   id: "org.bnbio.tutorials.02_exploratory_data_analysis"
-  version: 0.6.1
+  version: 0.6.2
 output:
   learnr::tutorial:
     progressive: true
@@ -638,7 +638,7 @@ That is much more like it! This is what packages like `edgeR` and `DESeq2` will 
 
 #### Setup
 
-Now that we know the theory, put it in practice using the `DESeq2` package. First, create a `DESeqDataSet` object from your `txi` and samples `object`. It will require that we set a `design`. For this, recall the very beginning of this tutorial and that we agreed on the fact that the variables `treatment` and `time` as being of interest. The design is what tells `DESeq2` how we want to model the expression values.
+Now that we know the theory, put it in practice using the `DESeq2` package. First, create a `DESeqDataSet` object from your `txi` and `samples` objects. It will require that we set a `design`. For this, recall the very beginning of this tutorial and that we agreed on the fact that the variables `treatment` and `time` as being of interest. The design is what tells `DESeq2` how we want to model the expression values.
 
 $$expression = f(treatment + time + treatment:time)$$
 We will revisit this concept in the next tutorial, for now, just know that in `R`, we write the previous equation as `~ time * treatment`

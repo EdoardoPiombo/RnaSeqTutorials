@@ -3,7 +3,7 @@ title: "Gene Set Enrichment Analysis (GSEA)"
 author: "Nicolas Delhomme for Bn Bioinformatics"
 tutorial:
   id: "org.bnbio.tutorials.04_gene_set_enrichment_analysis"
-  version: 0.7.1
+  version: 0.7.2
 output:
   learnr::tutorial:
     progressive: true
@@ -24,7 +24,6 @@ suppressPackageStartupMessages({
   library(dplyr)
   library(enrichplot)
   library(ggplot2)
-  library(GOfuncR)
   library(here)
   library(learnr)
   library(org.Hs.eg.db)
@@ -306,7 +305,7 @@ getDEgenes <- function(allScore){
 }
 ```
 
-However, what we would really need (review Schurch _et al._, RNA, 2016 is both a cutoff on the FDR and log2 fold-changes. The `topGO` design is not flexible enough to allow for that (we can have only one score), so we work our way around that. We change all FDR that corresponds to genes which |log2FC| is below 0.5 to 1.
+However, what we would really need (review Schurch _et al._, RNA, 2016) is both a cutoff on the FDR and log2 fold-changes. The `topGO` design is not flexible enough to allow for that (we can have only one score), so we work our way around that. We change all FDR that corresponds to genes which |log2FC| is below 0.5 to 1.
 
 ```{r lfc, exercise=TRUE, exercise.eval=FALSE}
 lfc=0.5
@@ -589,7 +588,11 @@ _Note: The issues raised in that paper from 2006: [Babel's tower revisited: a un
 
 ---
 
-#### Trialling
+#### Testing methods
+
+**In that section, we used to run a test using the `GOfuncR` package but it is broken on Mac atm (Nov. 2023).**
+
+Its results have been stored in an object and can be used. Read through the current section, but do not run the code. You might also just skip until the `Comparison` section.
 
 Now that we know a bit more about annotations, let us try the `GOfuncR` package. Following the instructions [there](https://bioconductor.org/packages/release/bioc/vignettes/GOfuncR/inst/doc/GOfuncR.html#core-function-go_enrich) and the example [there](https://bioconductor.org/packages/release/bioc/vignettes/GOfuncR/inst/doc/GOfuncR.html#hypergeometric-test-using-a-defined-background-gene-set) we can set up the object and perform the enrichment. 
 
