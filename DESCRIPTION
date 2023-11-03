@@ -1,7 +1,7 @@
 Package: RnaSeqTutorials
 Type: Package
 Title: Tutorials on RNA-Seq Data Analysis
-Version: 0.6.5
+Version: 0.6.6
 Author: Nicolas Delhomme [aut, cre]
 Maintainer: Nicolas Delhomme <nicolas.delhomme.fleig@gmail.com>
 Description: A package containing six tutorials to go from the Exploratory Data Analysis
