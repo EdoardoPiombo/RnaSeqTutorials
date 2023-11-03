@@ -801,7 +801,9 @@ heatplot(edox, foldChange=geneList, showCategory=5)
 
 Alternatively, the concept-gene relationship can be used to build dendrograms representing the pairwise similarities of the enriched terms
 
-```{r treeplot, exercise=TRUE, exercise.eval=TRUE}
+**Note that this fails for some (mysterious reasons) combination of OS / architecture.**
+
+```{r treeplot, exercise=TRUE, exercise.eval=FALSE}
 edox2 <- pairwise_termsim(edox)
 treeplot(edox2)
 ```
