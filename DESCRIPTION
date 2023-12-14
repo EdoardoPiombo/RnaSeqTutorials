@@ -1,7 +1,7 @@
 Package: RnaSeqTutorials
 Type: Package
 Title: Tutorials on RNA-Seq Data Analysis
-Version: 0.6.6
+Version: 0.7.0
 Author: Nicolas Delhomme [aut, cre]
 Maintainer: Nicolas Delhomme <nicolas.delhomme.fleig@gmail.com>
 Description: A package containing six tutorials to go from the Exploratory Data Analysis
@@ -37,4 +37,4 @@ Depends:
     vsn (>= 3.64.0)
 Suggests: BiocStyle, knitr, rmarkdown
 VignetteBuilder: knitr
-RoxygenNote: 7.2.1
+RoxygenNote: 7.2.3

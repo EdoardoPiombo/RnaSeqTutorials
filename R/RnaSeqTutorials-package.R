@@ -28,6 +28,7 @@
 #' \item\code{04_gene_set_enrichment_analysis} gene set enrichment analysis (GSEA) on the DE gene sets
 #' \item\code{05_ensemble_gene_set_enrichment_analysis} ensemble GSEA of the DE gene sets and comparison to GSEA
 #' \item\code{06_differential_transcript_usage} the differential transcript usage analysis of the same dataset
+#' \item\code{07_non_model_organism_exploratory_data_analysis} the exploratory data analysis of a srpuce RNA-Seq dataset (a non-model organism)
 #' }
 #'
 #' @name RnaSeqTutorials package
