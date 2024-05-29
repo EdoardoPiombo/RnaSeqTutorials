@@ -54,20 +54,22 @@ Write the R code required to add two plus two:
 ### Exercise with Code
 
 *Here's an exercise with some pre-populated code.*
+<!-- Here I just removed stuff about the function -->
 
-Now write a function that adds any two numbers and then call it:
+Now assign a  numeric value to a and b and then add a line to sum them:
 
 ```{r add-function, exercise=TRUE, exercise.lines = 5}
-add <- function() {
-  
-}
+a <- 
+b <- 
+
+
 ```
 
 ## Introduction
 
 In this tutorial, we will inspire ourselves from **Hadley Wickam**'s book: [R for Data Science](https://r4ds.had.co.nz). 
 
-This tutorial is meant to be completed after you have been through [Chapter 2](https://r4ds.had.co.nz/explore-intro.html) and [Chapter 3](https://r4ds.had.co.nz/data-visualisation.html) of the book.
+<!-- This tutorial is meant to be completed after you have been through [Chapter 2](https://r4ds.had.co.nz/explore-intro.html) and [Chapter 3](https://r4ds.had.co.nz/data-visualisation.html) of the book. -->
 
 In this tutorial, we will practice what we learned to do some exploratory analysis of the [palmer penguins](https://allisonhorst.github.io/palmerpenguins/) dataset. I have setup the tutorial to mimic a common real-life situation where a data scientist (you!) would be given a dataset to analyse with only a minimal set of information about the data. Hence, we will proceed as follows:
 
@@ -78,7 +80,7 @@ In this tutorial, we will practice what we learned to do some exploratory analys
 ### `tidyverse` _vs._ "base" `R`
 
 There are many possibilities to answer the exercises of this tutorial, and while the goal is to familiarise with `tidyverse`, using `base` R functions that achieve the same is fine. 
-
+ 
 You might end up reading a lot about "base" _vs._ `tidyverse`. There are some very opinionated data scientists around, but as with everything, I believe a middle ground is probably what we need to aim for. 
 
 IMO, both have their power and weaknesses, but what matter eventually is your mastery of it to be able to answer the questions you are asking.
