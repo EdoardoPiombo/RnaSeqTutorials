@@ -29,11 +29,16 @@ tutorial_options(
   exercise.reveal_solution=TRUE)
 
 # helpers
-source(here("tutorials/02_exploratory_data_analysis/www/featureSelection.R"))
+source(here("inst/tutorials/02_exploratory_data_analysis/www/featureSelection.R"))
 
 # data
-sample_file <- here("tutorials/02_exploratory_data_analysis/www/samples_table.tsv")
-samples <- read_tsv(sample_file,col_types=c("cfff"))
+
+## Edoardo
+## Substitute here with a group-specific data file.
+## We can maybe give each group a pathway for the files and use a learnr question to have them add it?
+
+# sample_file <- here("inst/tutorials/02_exploratory_data_analysis/www/samples_table.tsv")
+# samples <- read_tsv(sample_file,col_types=c("cfff"))
 
 # step to reproduce
 # ---
@@ -58,37 +63,35 @@ samples <- read_tsv(sample_file,col_types=c("cfff"))
 
 ## Introduction
 
-In this tutorial, we will take a look at RNA-Seq data retrieved from a study on regulatory T cells; accession **PRJNA369563**.
+In this tutorial, we will take a look at the RNAseq data that you generated last week.
 
-From the [study abstract](https://www.ebi.ac.uk/ena/browser/view/PRJNA369563?show=xrefs): 
 
-_"Regulatory T cells (Tregs) expressing the transcription factor FOXP3 are crucial mediators of self-tolerance, preventing autoimmune diseases but possibly hampering tumor rejection."_ ... 
+For this tutorial, you will work with a number of samples deriving from two conditions.
 
-_"To gain a comprehensive and unbiased molecular understanding of FOXP3 induction, we performed time-series RNA sequencing (RNA-Seq) and proteomics profiling on the same samples during human iTreg differentiation. To enable the broad analysis of universal FOXP3-inducing pathways, we used five differentiation protocols in parallel."_ ... 
+Explore the metadata file and consider which comparison is could you do with your data.
 
-_"Overall design: We performed a time-course experiment including six time points and four iTreg differentiation conditions. We included also a control time series and unstimulated nTregs. Three biological replicates were included. The total sample count is 81. In detail, human naïve CD4+ T cells were magnetically negatively isolated from peripheral blood. Cells were stimulated in serum-free medium with anti-CD3/anti-CD28 antibodies plus IL-2, and samples were taken at 2h, 6h, 24h, 48h and 6d of stimulation. Mock stimulation control cells (sample group G02) received no further compounds, whereas induced regulatory T cells (iTregs) were either differentiated under addition of TGF-b (sample group G03), TGF-b + retinoic acid (sample group G04), TGF-b + retinoic acid + rapamycin (sample group G05) or TGF-b + butyrate (sample group G06). As control, naïve CD4+ T cells were left unstimulated (0h; sample group G01). Ex vivo isolated CD25-high cells were included as positive control for the Treg signature (“nTreg”; sample group G07). Tregs were defined by expression of FOXP3, the “master” transcription factor of Tregs."_
+<!-- Edoardo
+This question was a quiz originally, but since the answer would change with every group I though of jsut leaving an open question.-->
 
-For this tutorial, we selected 3 replicates (A,B and D) of two time points (T03 and T04) of group (G02 and G03).
+  **Notes:**
 
-```{r attention}
-quiz(caption="Study design",
-  question("Which comparison our selection will allow?",
-    answer("TGF-b _vs._ Mock", correct=TRUE),
-    answer("24h _vs._ 6h", correct=TRUE),
-    answer("48h _vs._ 24h", message = "There are six time points in total, with T01 only for G01 and G07. That was a tough one, as the lack of information makes if difficult to figure out. We should always make sure to provide as clear and complete information as possible."),
-    answer("TGF-b + RA _vs._ TGF-b"),
-    incorrect="Nope, try again. Multiple answers are correct.",
-    allow_retry=TRUE)
-)
+  1. the library `here` is an essential library to ensure reproducibility. You might be familiar with _base_ `R` `setwd()` (set working directory) function? The `here()` function is similar but unlike `setwd()` that defines the directory according to your computer (_e.g._ `/home/delhomme/some-project`), it dynamically defines that directory based on the computer it is on. So on someone else's computer it will resolve to _e.g._ `/home/bastian/some-project`. It might seem trivial, but it makes the code truly portable, hence reproducible out of the box.
+  2. the function `read_csv` is only one of many functions from the `readr` package, a part of tidyverse. Check its [cheatsheet](https://readr.tidyverse.org/index.html#cheatsheet). You can also read in data directly from a Google Sheet!
+  3. [chapter 11](https://r4ds.had.co.nz/data-import.html#getting-started) explains in great details the mechanism of how `readr` parses the data and how you can fine tune it to your needs. While this is relatively infrequent in practice, it is good to know where to look for, whenever needed.
+
+```{r which-comparison, exercise=TRUE}
+library(here)
+library(readr)
+metadata <- read_csv(here('your_metadata_file.csv'))
+
+
 ```
 
-Now that we know more about the study design, we can set about reproducing some of the authors' results or devise and test new hypotheses. For that, we will go through the following steps (this tutorial is focused on the first one solely):
+Now that we know more about the study design, we will go through the following steps (this tutorial is focused on the first one solely):
 
 1. Perform an assessment of the data; the so called exploratory data analysis. It will help us decide whether the data is of sufficient quality to answer out biological question.
 2. Once satisfied with 1., perform a gene differential expression analysis to identify candidate genes
-3. Perform a transcript differential expression analysis to identify candidate transcripts
-4. Combine 2. and 3. to look at differential transcript usage
-5. Gain more knowledge about the identified candidate genes and transcripts to generate further hypotheses and/or select candidates for follow up studies.
+3. Gain more knowledge about the identified candidate genes to generate further hypotheses and/or select candidates for follow up studies.
 
 As mentioned, this tutorial focuses on point 1, which includes the following steps
 
@@ -101,74 +104,45 @@ As mentioned, this tutorial focuses on point 1, which includes the following ste
 
 ## Metadata
 
-We have translated the information from the study abstract into a file called [samples_table.tsv](tutorials/02_exploratory_data_analysis/www/samples_table.tsv), which looks like:
+We have translated the information from the study abstract into a file called [samples_table.tsv](tutorials/02_exploratory_data_analysis/www/samples_table.tsv), which looks like this:
 
 ```{r sample,echo=FALSE}
-read_tsv(here("tutorials/02_exploratory_data_analysis/www/samples_table.tsv"),show_col_types=FALSE)
+## They should have already loaded the metadata at this point
+head(metadata)
 ```
 
-The metadata looks pretty _tidy_, let us see how we can load it in R.
-
-### Tidyverse
-
-`tidyverse` and the `readr` package in particular provide a lot of functionality to read in tabular format in `R`. While this is nothing "new" compared to _base_ `R`, `readr` put a strong accent on doing it as safely as possible, informing the end-user about any issues it encounters. This may appear superficial but it is in reality a game-changer as it means that a lot of the assumptions you might have about your data will be challenged and it will give you the heads-up if any of these fails. It will end-up saving you a lot of time and preventing a lot of non-trivial errors to propagate throughout your analyses. 
-
-The corresponding [Chapter 11](https://r4ds.had.co.nz/data-import.html#getting-started) in [R for Data Science](https://r4ds.had.co.nz) by Hadley Wickham gives great details about this.
-
-Write the code to import the data in `R`
-
-```{r metadata, exercise=TRUE, exercise.eval=TRUE, exercise.lines = 5}
-library(here)
-library(readr)
-sample_file <- here("tutorials/02_exploratory_data_analysis/www/samples_table.tsv")
-
-```
-
-```{r metadata-hint}
-?read_tsv
-```
-
-```{r metadata-solution}
-samples <- read_tsv(sample_file)
-```
-
-  **Notes:**
-
-  1. the library `here` is an essential library to ensure reproducibility. You might be familiar with _base_ `R` `setwd()` (set working directory) function? The `here()` function is similar but unlike `setwd()` that defines the directory according to your computer (_e.g._ `/home/delhomme/some-project`), it dynamically defines that directory based on the computer it is on. So on someone else's computer it will resolve to _e.g._ `/home/bastian/some-project`. It might seem trivial, but it makes the code truly portable, hence reproducible out of the box.
-  2. the function `read_tsv` is only one of many functions from the `readr` package. Check its [cheatsheet](https://readr.tidyverse.org/index.html#cheatsheet). You can also read in data directly from a Google Sheet!
-  3. [chapter 11](https://r4ds.had.co.nz/data-import.html#getting-started) explains in great details the mechanism of how `readr` parses the data and how you can fine tune it to your needs. While this is relatively infrequent in practice, it is good to know where to look for, whenever needed.
 
 ---
 
 There is a lot more options that can be used to tune importing the data. The `R` language has its origin has a statistical language. Many of the variables we have in our metadata are actually categorical variables, which are best represented in `R` as `factor`s. Re-read the metadata setting the relevant columns as factors.
 
 ```{r metadata2, exercise=TRUE, exercise.eval=TRUE, message=FALSE, exercise.setup="metadata"}
-sample_file <- here("tutorials/02_exploratory_data_analysis/www/samples_table.tsv")
-samples <- read_tsv(sample_file)
+sample_file <- here("your_metadata_file")
+metadata <- read_csv(sample_file)
 ```
 
 ```{r metadata2-hint}
-read_tsv(...,col_types=...)
+read_csv(...,col_types=...)
 ```
 
 ```{r metadata2-solution}
 # multiple solutions are possible
 # using a string
-samples <- read_tsv(sample_file,col_types=c("cfff"))
+samples <- read_csv(sample_file,col_types=c("cfff"))
 samples
 # setting a default overall
-samples <- read_tsv(sample_file,col_types=cols(.default=col_factor()))
+samples <- read_csv(sample_file,col_types=cols(.default=col_factor()))
 samples
 # or you can have an extensive control of all variables.
 # if you replace cols() with cols_only(), you can control the columns that are kept
-samples <- read_tsv(sample_file,col_types=cols(sample_id=col_character(),
+samples <- read_csv(sample_file,col_types=cols(sample_id=col_character(),
                                                replicate=col_factor(),
                                                time=col_factor(),
                                                treatment=col_factor()))
 samples
 # sometimes you just want the defaults, but also want it to be quiet 
 # (not a solution to the question though! but as good as any a place to mention it)
-samples <- read_tsv(sample_file,show_col_types=FALSE)
+samples <- read_csv(sample_file,show_col_types=FALSE)
 ```
 
 Alright, half of the work done, remains to load the data.
@@ -212,6 +186,7 @@ On the brighter side, what can we do with count data? A lot!
 5. Does anything change? [Gene Differential Expression (GDE)](https://liorpachter.wordpress.com/2018/02/15/gde%C2%B2-dge%C2%B2-dtu%C2%B2-dte%E2%82%81%C2%B2-dte%E2%82%82%C2%B2/)
 
 ![By Lior Pachter](images/GeneDifferentialExpression.jpeg){width=80%}
+We will only work with point 1 (Differential Gene Expression) during this course
 
 ---
 
@@ -229,7 +204,7 @@ Counts have many properties, which we will see in the following, but most import
 
 An important note on units. You may have heard of `RPKM`, `FPKM`, `TPM`. These are all metrics used for RNA-Seq and they have been used for years. Tools for differential expression do **NOT** use any of these and for good reasons (more below). 
 
-All three units will be affected by genes with very high counts, which have high variance and disproportionately influence estimators like the total sum. They merely normalise all expression values using a single ratio, scaling to a final library size equivalent to one million
+It is not important for you to know exactly what these are (but you can google them of course!). Just know that all three units will be affected by genes with very high counts, which have high variance and disproportionately influence estimators like the total sum. They merely normalise all expression values using a single ratio, scaling to a final library size equivalent to one million
 
 `RPKM/FPKM` (read/fragment per kilobase of transcript per million reads in the library) are even more sensitive to this than the `TPM` as they integrate the actual library size as part of the calculation instead of that of an arbitrary library size of one million.
 
@@ -252,6 +227,9 @@ Counts have the following properties:
 ![By Q9 at the English-language Wikipedia, CC BY-SA 3.0, [Wikipedia](https://commons.wikimedia.org/w/index.php?curid=18064846)](images/Heteroscedasticity.png)
 
 ---
+
+<!-- Edoardo
+Do the students possess the background to understand the next part? It is not striclty necessary for them to know this -->
 
 Such characteristics are well modeled by a Poisson distribution with its single parameter lambda: 
 
@@ -284,29 +262,63 @@ As a matter of fact, differential expression models that have more than one vari
 
 Quantification of expression profiling data from most commonly used tools (_e.g._ salmon, rsem, stringtie, kallisto) can be imported in `R` using the `tximport` [package](https://doi.org/doi:10.18129/B9.bioc.tximport).
 
+<!-- Edoardo
+I think we could leave out the part about the matrix of transcript lengths
+-->
+
 _"Imports transcript-level abundance, estimated counts and transcript lengths, and summarizes into matrices for use with downstream gene-level analysis packages. Average transcript length, weighted by sample-specific transcript abundance estimates, is provided as a matrix which can be used as an offset for different expression of gene-level counts."_ [Soneson, Love, Robinson](https://doi.org/10.12688/f1000research.7563.1)
 
-In the frame of this tutorial, the salmon quantification files have been processed as follows:
-```{r txi_mock, eval=FALSE, echo=TRUE}
-txi <- tximport(<QUANT.SF_FILES>,type="salmon",tx2gene=<TX2GENE>,varReduce=TRUE)
+Use tximport to load your data. Remember to use the tx2gene file specified for your group on Canvas. This file is necessary if your species has more than one transcript per gene. It should then contain two columns, tab delimited, the first one with the transcript IDs and the second one the corresponding gene ID.
+
+```{r txi_import, exercise= TRUE}
+
+tx2gene <- read_delim(here("YOUR_TX2GENE_FILE"),delim="\t",
+                                 col_names=c("TXID","GENE"))
+filelist <- list.files(here("YOUR_SALMON_FOLDER"), 
+                          recursive = TRUE, 
+                          pattern = "quant.sf",
+                          full.names = TRUE)
+
+#' This step is to validate that the salmon files are int he same order as 
+#' described in the metadata file. This is fundamental, as the metadata and the data come from separate files, and if the order is different the next steps will "swap" samples (that is, they will not be able to attribute the right condition to the right sample).
+#' If they are not in the same order, you must change the order using R,
+#' or by editing the metadata file directly and then rerunning the whole BiologicalQA.
+#' Similarly, people working with aspen do not need to do this.
+#' Instead of TO_REPLACE and REPLACEMENT, you should add a regular expression to have your complete file names match your Sample IDs
+#' You can complete regular expression is in the text in the REGEX column corresponding to your group
+#' in the regex.tsv document (On Canvas).
+#' Regular expressions are strings of text that allow a program to match different string of texts. For example, "." means
+#' "any character" and "*" means "any number of repetition of the previous character
+#' Can you understand why your regex work?
+#' If you feel brave, you can of course try to come up with a regex of your own.
+#' Pine projects have an expecially simple regular expressions
+#' 
+stopifnot(all(match(sub("_S[0-9]+_L00[0-9]_sortmerna_trimmomatic.*","",basename(dirname(filelist))),
+                    samples$SampleID) == 1:nrow(samples)))
+samples <- samples %>% mutate(Filenames = filelist)
+txi <- tximport(files = samples$Filenames,
+                                 type = "salmon",
+                                 tx2gene=tx2gene)
+
+
+# Let's also save the samples, in the right order and with a column indicating their salmon quant files, as a new file:
+
+write_tsv(samples,"PATH_TO_PROJECT_FOLDER/samples_full_rank.txt")
+
 ```
 
-where `<QUANT.SF_FILES>` was the character vector of the salmon results' quant.sf files, <TX2GENE> is a simple tab delimited file containing for every transcript ID, the corresponding gene ID. Note that salmon was used in a mode that bootstraps the quantification (since it is an expectation-maximisation process) typically a 100 times. This allows to devise per-sample inferential replicate information, which was then summarised by setting `varReduce=TRUE`. The `txi` object was saved and we now load it into our session.
 
-```{r tximport, exercise=TRUE, exercise.eval=FALSE, exercise.setup="metadata2"}
-txi <- readRDS(here("tutorials/02_exploratory_data_analysis/www/tximport.rds"))
+<!-- Edoardo
+I commented this part as I think it will cause confusion. They did not go this deep on salmon during week1 and I would not want them to spend too much time in week2 googling how salmon works.
 
-```
-
-```{r tximport-hint}
-?str
-```
-
-```{r tximport-solution}
-str(txi)
-```
+Note that salmon was used in a mode that bootstraps the quantification (since it is an expectation-maximisation process) typically a 100 times. This allows to devise per-sample inferential replicate information, which was then summarised by setting `varReduce=TRUE`. The `txi` object was saved and we now load it into our session.
+-->
 
 Take a look at the object (use the code block above). Make sure *NOT* to call `txi` as this will most probably time-out.
+
+<!-- Edoardo
+In the next part again the answers will change depending on the group
+-->
 
 ```{r tximport-quiz}
 quiz(caption="`tximport` object",
@@ -365,6 +377,7 @@ quiz(caption="raw or TPM, that is the question",
 ```
 
 Write the code to extract the counts and apply a function to convert them to integers.
+Integers is a fancy coding name for "numbers without decimals". Sometimes you can have decimal numbers in counts, for example because some programs assign "0.5" value to two transcripts when a read maps equally well to both of them. We must round all values so we do not have decimals, otherwise some of the programs of the following steps will not work.
 
 ```{r counts, exercise=TRUE, exercise.eval=FALSE, exercise.setup="tximport"}
 
@@ -379,9 +392,11 @@ Write the code to extract the counts and apply a function to convert them to int
 counts <- round(txi$counts)
 ```
 
+<!-- Edoardo
+I commented the following part, as they should have already done that at this point
 Now, it is very important that we do some sanity checking. Our metadata and data are two **SEPARATE** entities. We need to ensure that they are from the same studies, that samples are the same and most importantly sorted in the same order! Give it a try.
 ```{r counts-pre, include=FALSE}
-counts <- readRDS(here("tutorials/02_exploratory_data_analysis/www/counts.rds"))
+counts <- readRDS(here("inst/tutorials/02_exploratory_data_analysis/www/counts.rds"))
 ```
 
 ```{r sanity, exercise=TRUE, exercise.eval=FALSE, exercise.setup="counts-pre"}
@@ -410,6 +425,8 @@ quiz(caption="Does it matter?",
                      message="That would be nice")
      ))
 ```
+-->
+
 
 ### Raw data
 
@@ -445,11 +462,11 @@ quiz(caption="Assumption",
 ```
 
 #### Sequencing depth (SD)
-Another important initial assessment is to evaluate the discrepancy (if any) in sequencing depth. For that, visualise the sum of counts per samples. For this, you will use `ggplot` but you will also need to create the necessary data. For that we will need the `tibble` package `tibble()` constructor and the `dplyr` package `%>%` pipe and `bind_cols()` function. For that, both the tidyverse [webpage](https://www.tidyverse.org/) and the corresponding [cheatsheets](https://www.rstudio.com/resources/cheatsheets/) are extremely useful.
+Another important initial assessment is to evaluate the discrepancy (if any) in sequencing depth. For that, visualise the sum of counts per samples. For this, you will use `ggplot` but you will also need to create the necessary data. For that we will need the `tibble` package `tibble()` constructor and the `dplyr` package `%>%` pipe and `bind_cols()` function. These are all packages included in tidyverse, and both the tidyverse [webpage](https://www.tidyverse.org/) and the corresponding [cheatsheets](https://www.rstudio.com/resources/cheatsheets/) are extremely useful.
 
 First, write the code to reproduce the following object:
 ```{r tibble-view, echo=FALSE, eval=TRUE}
-counts <- readRDS(file=here("tutorials/02_exploratory_data_analysis/www/counts.rds"))
+counts <- round(txi$counts)
 tibble(x=colnames(counts),
        y=colSums(counts)) %>% 
   bind_cols(samples)
@@ -504,15 +521,16 @@ ggplot(dat,aes(x,y,fill=treatment)) +
 ```
 
 ```{r barplot-quiz}
-quiz(caption="Evaluation",
-     question("Is there something unexpected in that plot?",
-              answer("No"),
-              answer("Yes, sample SRR...570 is clearly undersampled in comparison to the others",
-                     correct=TRUE)))
+quiz(caption="Assumption",
+     question("Is there something unexpected in the plot?",
+              answer("Yes",correct=TRUE),
+              answer("No",message="This could actually also a be valid answer, depending on the group"),
+              post_message="Whichever your answer, keep your arguments so we can discuss them."
+     ))
 ```
 
 #### SD per sample
-As we just saw, all but one sample have comparatively similar sequencing depth (15-25 M reads). That previous visualisation however does not inform us on the distribution of reads within individual samples. To achieve this we will again need to transform the data. We will convert the counts onto a log10 scale and store them in a `data.frame()`. Then we will use the `tibble` package `rownames_to_column()`, `tidyr` `pivot_longer` and `dplyr` `starts_with()` and `left_join()` functions to convert the data and associate it with the sample information. Write the code to reproduce the following table.
+As we just saw, some samples have more sequencing depth than others. That previous visualisation however does not inform us on the distribution of reads within individual samples. To achieve this we will again need to transform the data. We will convert the counts onto a log10 scale and store them in a `data.frame()`. Then we will use the `tibble` package `rownames_to_column()`, `tidyr` `pivot_longer` and `dplyr` `starts_with()` and `left_join()` functions to convert the data and associate it with the sample information. Write the code to reproduce the following table.
 
 ```{r pivot-view, echo=FALSE, eval=TRUE}
 as.data.frame(log10(counts)) %>% 
@@ -548,7 +566,7 @@ dat <- as.data.frame(LOG_DATA) %>%
 ```{r pivot-solution}
 dat <- as.data.frame(log10(counts)) %>% 
   rownames_to_column() %>% 
-  pivot_longer(starts_with("SRR"),
+  pivot_longer(starts_with("FIRST_LETTERS_IN_COMMON_IN_ALL_COLUMNS"),
                names_to="sample_id",
                values_to="x") %>% 
   left_join(samples %>% select(-replicate),by=c("sample_id"))
@@ -591,11 +609,11 @@ ggplot(dat,aes(x=x,group=sample_id,col=treatment)) +
   facet_grid(~ time, scales = "free")
 ```
 
-All samples seem to have a similar distribution, with one replicate (`SRR...570`) showing clear shift toward the left of its overall distribution. Apart from that, its distribution shape is similar to the others. 
+Do all your samples have the same distribution? If not, what would that mean? 
 
 ```{r density-quizz}
 quiz(caption="What's next",
-     question("What would you do about that sample?",
+     question("What would you do with a sample having a different distribution?",
               answer("Proceed with it",correct=TRUE),
               answer("Drop it",message="On what justification? So far we only know it is not sequenced as deep as the others."),
               answer("Ask the wet-lab or sequencing facility if there is still some material available for a sequencing re-run.", correct=TRUE)))
@@ -603,7 +621,7 @@ quiz(caption="What's next",
 
 ### Normalisation
 
-The property of the raw data looks acceptable, with the drawback that one sample might be under-sampled. We will now normalise the data so as to be able to compare between samples.
+The property of the raw data looks acceptable, with the drawback that some samples may have different sequencing depth (depending on the group). We will now normalise the data so as to be able to compare between samples.
 
 #### Principles
 We know we need to address the following caveats:
@@ -638,13 +656,27 @@ That is much more like it! This is what packages like `edgeR` and `DESeq2` will 
 
 #### Setup
 
-Now that we know the theory, put it in practice using the `DESeq2` package. First, create a `DESeqDataSet` object from your `txi` and `samples` objects. It will require that we set a `design`. For this, recall the very beginning of this tutorial and that we agreed on the fact that the variables `treatment` and `time` as being of interest. The design is what tells `DESeq2` how we want to model the expression values.
+Now that we know the theory, put it in practice using the `DESeq2` package. First, create a `DESeqDataSet` object from your `txi` and `samples` objects. It will require that we set a `design`. For this, recall the very beginning of this tutorial and that we agreed on the fact that one of your variables is of interest (depending on the group). The design is what tells `DESeq2` how we want to model the expression values.
 
+<!-- Edoardo
+I comment the next part, as for them it will be easier to just now to use the
+name of the variable of interest as design
 $$expression = f(treatment + time + treatment:time)$$
 We will revisit this concept in the next tutorial, for now, just know that in `R`, we write the previous equation as `~ time * treatment`
 
+-->
+
+Before actually loading the data, we set as reference level the condition that we will compare the data to.
+If you have it in your dataset, this could be the "control" condition, otherwise it should be one of the values present in the column of the metadata you are interested in.
+When a gene is identified as "Upregulated" or "Downregulated", it will be upregulated or downregulated in respect to this condition.
+Now try to load the data using DESeq2 commands
+
 ```{r dds, exercise=TRUE, exercise.eval=FALSE, exercise.setup="tximport"}
 suppressPackageStartupMessages(library(DESeq2))
+
+samples$CONDITION_OF_INTEREST <- relevel(samples$CHANGEME, ref = "YOUR_CONTROL_CONDITION")
+
+dds <- 
 ```
 
 _Note:_ `suppressPackageStartupMessages()` is very useful to silence all messages and warnings that `R` rpoduces when loading a package. However, one should be careful as these messages can point to issues such as the overloading of functionalities of packages previously loaded.
@@ -657,17 +689,15 @@ _Note:_ `suppressPackageStartupMessages()` is very useful to silence all message
 dds <- DESeqDataSetFromTximport(
   txi=txi,
   colData = samples,
-  design = ~ time * treatment)
+  design = ~ CONDITION_OF_INTEREST)
 ```
 
  **Note:**
 See the warning we got? Well, up there reading the metadata, the last command reset samples to have all columns as characters. This is `R` default since version 4, but in previous versions, factors were the default to represent alphanumeric values.
 
-```{r dds-rds, include=FALSE}
-dds <- readRDS(here("tutorials/02_exploratory_data_analysis/www/dds.rds"))
-```
 
 Before we proceed, take a few instants to familiarise with the `DESeqDataSet` object.
+Then, save the dds object like an rda file (a file format used to save this type of objects), so that we can import it again tomorrow.
 ```{r dds-what, exercise=TRUE, exercise.eval=FALSE, exercise.setup="dds-rds"}
 dds
 colData(dds)
@@ -676,6 +706,8 @@ head(rownames(dds))
 head(assay(dds))
 head(assay(dds,"avgTxLength"))
 metadata(dds)
+
+save(dds,file="PATH_TO_PROJECT_FOLDER/dds.rda")
 ```
 
 If you observe the example above, you will realise that all the function calls past the first view of the `dds` object are using `accessor` functions that are named after the `slot` of the object. This is part of the good coding practice in `R` and something you should come to expect when working with `S4-6` objects.
@@ -715,7 +747,7 @@ As you may observe, `DESeq2` informs us that it will use the average transcript 
 
 ```{r norm_factor-solution}
  ggplot(as.data.frame(normalizationFactors(dds)) %>% 
-          rownames_to_column() %>% pivot_longer(starts_with("SRR"),
+          rownames_to_column() %>% pivot_longer(starts_with("FIRST_LETTERS_IN_COMMON_IN_ALL_COLUMNS"),
                                                 names_to="sample_id",
                                                 values_to="size_factor"),
         aes(x=sample_id,y=size_factor)) + 
@@ -743,11 +775,13 @@ Now that we have seen how the library size normalisation works, and that most li
 #### Variance Stabilising Transformation
 
 To address both issues 3. and 4. (that are by the way not corrected when you export using `DESeq2` `counts(dds,normalised=TRUE)` function call), we will use another `DESeq2` function called `varianceStabilizingTransformation()`
+As for dds, we save the vst object in rda format
 
 ```{r vst, exercise=TRUE, exercise.eval=FALSE, exercise.timelimit=600, exercise.setup="dds-rds"}
 vsd <- varianceStabilizingTransformation(dds, blind=TRUE)
 vst <- assay(vsd)
 vst <- vst - min(vst)
+save(vst,file="PATH_TO_PROJECT_FOLDER/analysis/DE/vst-aware.rda")
 ```
 
 _Note_
@@ -756,11 +790,15 @@ _Note_
 
 We can look now at what the `vst` has achieved.
 
+<!-- Edoardo
+I comment the next part, as they will not have these exact files
+
 ```{r vst-rds, include=FALSE}
-counts <- readRDS(here("tutorials/02_exploratory_data_analysis/www/counts.rds"))
-dds <- readRDS(here("tutorials/02_exploratory_data_analysis/www/dds.rds"))
-vst <- readRDS(here("tutorials/02_exploratory_data_analysis/www/vst.rds"))
+counts <- readRDS(here("inst/tutorials/02_exploratory_data_analysis/www/counts.rds"))
+dds <- readRDS(here("inst/tutorials/02_exploratory_data_analysis/www/dds.rds"))
+vst <- readRDS(here("inst/tutorials/02_exploratory_data_analysis/www/vst.rds"))
 ```
+-->
 
 
 ```{r htrscdstc, exercise=TRUE, exercise.eval=FALSE, exercise.setup="vst-rds"}
@@ -775,7 +813,7 @@ meanSdPlot(vst[rowSums(vst)>0,])
 
 ### Visualisation
 
-Now, we will focus on a number of visualisation to perform the EDA of the normalised data. The most common visualisations are Principal Component Analysis ([PCA](https://en.wikipedia.org/wiki/Principal_component_analysis)) and [heat maps](https://en.wikipedia.org/wiki/Heat_map).
+Now, we will focus on a number of visualisations to perform the EDA of the normalised data. The most common visualisations are Principal Component Analysis ([PCA](https://en.wikipedia.org/wiki/Principal_component_analysis)) and [heat maps](https://en.wikipedia.org/wiki/Heat_map).
 
 #### PCA
 
@@ -798,6 +836,7 @@ quiz(caption="What does a PCA tells us?",
 We will now look at a scree plot and a 2D plot of the components. For you reference, there exists a fantastic package to analyses PCA plots: [PCAtools](https://bioconductor.org/packages/devel/bioc/vignettes/PCAtools/inst/doc/PCAtools.html)
 
 ---
+
 
 A scree plot is a plot that visualise the cumulative variance explained by the components. It is useful to determine how many components are needed to explain most of the variance in the data, it will help us assess whether that number of components could be in agreement with the number of variables as well as with the number of possible combinations of their values.
 
@@ -837,12 +876,14 @@ quiz(caption="What do we see?",
 
 ---
 
-The scree plot main inflection point is (most probably) located at PC4, which would be in agreement with our model of two time points and two treatments. 
+Let us now visualise the components in two dimensions. We will iterate on the 3 first PCs.
 
-Let us now visualise the components in two dimensions. We will iterate on the 4 first PCs.
+<!-- Edoardo
+We could maybe skip this part, given that they will only have 1 variable?
+-->
 
 ```{r twod, exercise=TRUE, exercise.eval=FALSE, exercise.setup="prcomp"}
-dev.null <- apply(combn(1:4,2),2,function(co){
+dev.null <- apply(combn(1:3,2),2,function(co){
   pc.dat <- bind_cols(pc$x[,co],
                       as.data.frame(colData(dds)))
   
@@ -868,7 +909,7 @@ quiz(caption="What can we conclude?",
               ))
 ```
 
-The PCA reveals a worrying fact, which is that one of the main component (PC3, 12%) is not easily explained by either variable we looked at. It could still be linked to a variable, we have not looked at, namely the replicates. Write the code to visualise the replicate instead of one of the other variable for the first and third component.
+Sometimes on PCA is not linked to the main variables analysed in the design of DESeq2, but to single replicates. Write the code to visualise the replicate instead of one of the other variable for the first and third component.
 
 ```{r twod_rep, exercise=TRUE, exercise.eval=FALSE, exercise.setup="prcomp"}
 
@@ -900,24 +941,33 @@ ggplot(pc.dat %>% rename_with(.cols=1:2,~c("x","y")),
 
 #### Heat map
 
-We have now observed that the principal components do explain most of the biological variance, while there is a worrying 12% effect due to replicate B, which is probably some type of technical induced artifact. We have now a good summarising idea of the sample properties, bu we certainly also want to have a closer understanding of the expression patterns across the samples. For that, we will generate a heat-map. Heat-maps are computationally expensive to create (as they rely on hierarchical clustering of genes and samples), so many tools in practice limit the number of genes used (the defaults vary between 500 and 1000 for DESeq2 and edgeR). I personally dislike such an approach, as the selection of a subset of gene might very well remove important signal. I am rather in favor of trying to remove genes which signal-to-noise ratio is too low to be informative. There are different ways to do that, but here we just use a naïve approach, where we will keep a gene provided it is expressed a given minimal cutoff, in all three replicates of at least one condition. Run the code below.
+We have now observed that the principal components do explain most of the biological variance. We have now a good summarising idea of the sample properties, bu we certainly also want to have a closer understanding of the expression patterns across the samples. For that, we will generate a heat-map. Heat-maps are computationally expensive to create (as they rely on hierarchical clustering of genes and samples), so many tools in practice limit the number of genes used (the defaults vary between 500 and 1000 for DESeq2 and edgeR). I personally dislike such an approach, as the selection of a subset of gene might very well remove important signal. I am rather in favor of trying to remove genes which signal-to-noise ratio is too low to be informative. There are different ways to do that, but here we just use a naïve approach, where we will keep a gene provided it is expressed a given minimal cutoff, in all replicates of at least one condition.
 
+<!-- Edoardo
+Again I comment this out
 ```{r featSel-setup, include=FALSE}
-dds <- readRDS(here("tutorials/02_exploratory_data_analysis/www/dds.rds"))
-vst <- readRDS(here("tutorials/02_exploratory_data_analysis/www/vst.rds"))
+dds <- readRDS(here("inst/tutorials/02_exploratory_data_analysis/www/dds.rds"))
+vst <- readRDS(here("inst/tutorials/02_exploratory_data_analysis/www/vst.rds"))
 ```
+-->
 
+To do this, you will use the `rangeFeatureSelect() function. It will return two graphics, one in a linear scale, the other in a log scale, showing the number of genes expressed at a specific cutoff in all replicates in at least one condition.
 
 ```{r featSel, exercise=TRUE, exercise.eval=TRUE, exercise.setup="featSel-setup"}
-conds <- factor(paste(dds$time,dds$treatment))
-sels <- rangeFeatureSelect(counts=vst,conditions=conds)
+conds <- factor(paste(dds$CONDITION_OF_INTEREST))
+sels <- rangeFeatureSelect(counts=vst,conditions=conds, nrep=NUMBER_OF_REPLICATES_PER_CONDITION)
 ```
 
-The `rangeFeatureSelect()` function returns two graphics, one in a linear scale, the other in a log scale. 
+Try to select a cutoff value that will allow you to keep around 20 thousand genes, as that will result in a heatmap that is informative but also reasonably fast to generate.
+
+<!--Even here, the result will change depending on the group. Some groups also had different numbers of replicates, so they changed that value when using rangeFeatureSelect()
+
+
+
 
 ```{r featSel-quiz}
 quiz(caption="Filtering uninformative (_i.e._ most lowly expressed) genes",
-     question("What would seem an ideal signal-to-noise cutoff?",
+     question("What would seem an ideal signal-to-noise cutoff? In general, we want to keep around 20 thousand genes, as that will result in a reasonably fast generation of the heatmap",
               answer("0",message="This would apply no cutoff and hence be inadequate - non expressed genes would remain."),
               answer("1",correct=TRUE),
               answer("2",message="I would be less stringent"),
@@ -925,6 +975,7 @@ quiz(caption="Filtering uninformative (_i.e._ most lowly expressed) genes",
               incorrect="This is my choice, yours may be different.")
 )
 ```
+-->
 
 Now that you have made a choice, change the `vst.cutoff` value in the code below and run it. It will take time, up to a few minutes to complete.
 
@@ -939,7 +990,7 @@ suppressPackageStartupMessages({
 hpal <- colorRampPalette(c("blue","white","red"))(100)
 
 # cutoff
-vst.cutoff <- 1
+vst.cutoff <- YOUR_CHOSEN_CUTOFF
 
 # heatmap
 hm <- heatmap.2(t(scale(t(vst[sels[[vst.cutoff+1]],]))),
@@ -954,13 +1005,7 @@ Finally, interpret the heatmap above.
 
 ## Conclusion
 
-My conclusions are:
-
-1. The SRR..570 sample seems OK despite its lower depth
-2. The third PCA dimension suggest some technical bias, so we need to keep it in mind when selecting our candidate genes
-3. The heat-map reveals that the treatment at T03 is not yet separating the samples as it is at T04. So the induction has an effect probably separating the samples between 6h and 24h. A follow up experiment should have more time points in that range.
-4. Point 3. can probably be linked to point 2., in the sense that at T03 samples do cluster by replicate.
-5. If we are interested in differences between treatment and control, it might be more efficient to do a DE just on T04.
+Think about what are your conclusions regarding the data, do you think you have an ideal situation? Can you anticipate any problems or issues that could affect the results of the differential expression analysis, given what you have discovered today about the data?
 
 ## Session Info
 It is good practice and highly recommended to always include the session info in your analyses. This way other can reproduce them with the exact same versions of the packages you used. Use the help to find out how to print the session info.
