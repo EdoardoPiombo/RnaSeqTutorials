@@ -1,0 +1,120 @@
+---
+title: "Intro to R"
+author: "Edoardo Piombo"
+date: "2024-05-03"
+output: html_document
+subtitle: Applied Functional Genomics 2024
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+## Objectives
+
+- Learn what a principale component analysis is
+
+```{r, eval=TRUE, echo=FALSE, out.width="90%"}
+knitr::include_graphics("figures/penguins5.jpg")
+```
+
+
+## First things first
+Let's load again our penguins data
+
+```{r, eval=TRUE, echo=FALSE}
+suppressMessages(library(tidyverse))
+library(palmerpenguins)
+data(package = 'palmerpenguins')
+penguins <- penguins %>%  drop_na()
+```
+
+```{r, eval=FALSE, echo=TRUE}
+library(tidyverse)
+library(palmerpenguins)
+data(package = 'palmerpenguins')
+penguins <- penguins %>%  drop_na()
+```
+
+```{r, eval=TRUE, echo=FALSE, out.width="60%"}
+knitr::include_graphics("figures/penguins1.jpg")
+```
+
+## Principal component analysis (PCA)
+<p style="font-size: 18px;">It is a linear dimensionality reduction technique. </p>
+
+<p style="font-size: 18px;">This means that it aims to reduce the number of dimensions that describe the dataset while retaining as much information as possible. </p>
+
+<p style="font-size: 18px;">For example, yesterday we saw that the flipper length of penguins kind of correlate with their body mass: </p>
+
+```{r, eval=TRUE, echo=FALSE, fig.height=3}
+ggplot(
+  data = penguins,
+  mapping = aes(x = flipper_length_mm, y = body_mass_g)
+) +
+  geom_point(mapping = aes(color = species)) +
+  geom_smooth(method = "lm")
+```
+
+## Using PCA to reduce dimensions
+We can use a PCA to define principal components, which are single values that retain information about multiple dimensions,
+such as flipper length and body mass.
+
+In practice, before doing PCA you must:
+
+- remove any NA values
+- select numerical columns
+- scale all numerical columns
+
+```{r, eval=TRUE, echo=TRUE}
+penguins <- penguins %>% drop_na()
+
+penguins_numeric <- select_if(penguins, is.numeric)
+
+pca_result <- prcomp(penguins_numeric, scale. = TRUE)
+
+```
+
+
+## Let's take a look at the results
+Each of the original numeric colums correlates and contributes to each of the PC by different amounts.
+
+```{r, eval=TRUE, echo=TRUE}
+pca_result 
+
+```
+
+## We can visualize it like this
+
+```{r, eval=TRUE, echo=TRUE, fig.height=3}
+pca_df <- as.data.frame(pca_result$rotation)
+pca_df <- pca_df %>% mutate(variable=rownames(pca_df))
+pca_tidy <- pivot_longer(pca_df, cols = -variable, names_to = "PC",
+                         values_to = "Loading")
+ggplot(pca_tidy, aes(x = PC, y = Loading, fill = variable)) +
+  geom_bar(stat = "identity", position = "dodge", color = "black")
+
+```
+
+## Each PC explains a certain amount of variability
+
+```{r, eval=TRUE, echo=TRUE}
+summary(pca_result)
+```
+## Let's look at this with ggplot
+
+```{r, eval=TRUE, echo=TRUE, fig.height=3}
+library(broom)
+Variance <- as_tibble(summary(pca_result)$importance)[3,]
+Variance <- Variance %>%
+  pivot_longer(everything(), names_to = "PC", values_to = "cumulative_variance")
+ggplot(Variance, aes(x = PC, y = cumulative_variance)) +
+  geom_col(fill = "skyblue", color = "black")
+```
+
+## Exercises
+- Keep working on the exercises of the morning
+- Rerun the code of the afternoon step by step and try to understand it
+- Make a scatterplot in which you plot the penguins according to PC1 and PC2 (suggestion: as.data.frame(pca_result$x) returns a dataframe with the PC values for every penguin).
+
+
