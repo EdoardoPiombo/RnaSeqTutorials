@@ -143,7 +143,7 @@ There must be another way to look at the data! Gene Set Enrichment Analysis (GSE
 
 GSEA aims at answering the question: is my list of genes (the gene set) associated with the experimental condition? For example, "are there unusually many de-regulated genes in my gene list?" or "is my DE gene list enriched for some functional processes?".
 
-Let us load the DE data we generated. The file is in "tutorials/04_gene_set_enrichment_analysis/www/analysis/G03_vs_G02_at_T04_simple-model_DE-results.tsv".
+Let us load the DE data we generated. The file is "PATH_TO_PROJECT_FOLDER/results_DE.tsv".
 
 ```{r load, exercise=TRUE, exercise.eval=FALSE}
 
@@ -155,10 +155,10 @@ Let us load the DE data we generated. The file is in "tutorials/04_gene_set_enri
 ```
 
 ```{r load-solution}
-G03_vs_G02_at_T04_simple <- read_tsv(file=here("tutorials/04_gene_set_enrichment_analysis/www/analysis/G03_vs_G02_at_T04_simple-model_DE-results.tsv"),show_col_types=FALSE)
+DEres <- read_tsv(file=here("PATH_TO_PROJECT_FOLDER/results_DE.tsv"),show_col_types=FALSE)
 ```
 
-Now, that we have restored the DE results in `R` from our simpler model data analysis (T04 only modeled as `~treatment`), we can start to do a gene ontology enrichment. There are many ways to do so, and many online tools too, but for now, we will use a `R` package called `topGO`. `topGO` is a package that was developed at the time when expression profiling was done on microarray and while the package is still relevant nowadays, the documentation has aged and is far from being comprehensive.
+Now, that we have restored the DE results in `R` from our analysis, we can start to do a gene ontology enrichment analysis. There are many ways to do so, and many online tools too, but for now, we will use a `R` package called `topGO`. `topGO` is a package that was developed at the time when expression profiling was done on microarray and while the package is still relevant nowadays, the documentation has aged and is far from being comprehensive.
 
 ## Gene Set Enrichement Analysis
 
@@ -166,13 +166,15 @@ There are many Gene Set Enrichement Analysis (GSEA) methods, Bioconductor had as
 
 Still, most of these rely on three approaches, reviewed in [Khatri et al., 2012](https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1002375). These are:
 
-* Over-representation analysis (ORA): are differentially expressed (DE) genes in the set more common than expected from the population?
+* Over-representation analysis (ORA): is a type of differentially expressed (DE) genes in the set more common than expected from the population? For example, is 1 gene in 10 of the upregulated genes a transcription factor, when transcription factors are 1 gene in 100 in the expressed genes?
+
+<!-- Edoardo: Should we limit ourselves to over representation analyses? -->
 * Functional class scoring (FCS): summarize statistic of DE of genes in a set, and compare to a null (typically permutation of the sample labels)
 * Pathway topology (PT): include pathway knowledge in performing FCS, _e.g._ the number and type of interactions between gene products
 
 ![Kathri _et al._, 2012, Figure 1](images/pcbi.1002375.g001.png){width=80%}
 
-You are probably already familiar with a number of tools and websites that offer GSEA, for example, [KEGG](https://www.genome.jp/kegg/), [Reactome](https://reactome.org/), and most certainly you have have heard or read about [Gene Ontology](http://geneontology.org/) enrichment. Let's have a GO at the later (sorry, bad pun...)
+You are probably already familiar with a number of tools and websites that offer GSEA, for example, [KEGG](https://www.genome.jp/kegg/), [Reactome](https://reactome.org/), and most certainly you have have heard or read about [Gene Ontology](http://geneontology.org/) enrichment. Let's have a GO at the latter (sorry, bad pun...)
 
 ## Gene Ontology Enrichment
 
@@ -188,7 +190,7 @@ The vocabulary is hierarchical, organised as a [directed acyclic graph](https://
 
 ![DAG example, where $a$ would be _e.g_ biological process, $c$ would be metabolism and $e$ cytochrome metabolic process ](images/Tred-G.png){width=50%}
 
-As one goes further away from the DAG root or its second highest level terms Biological Process, Cellular Component and Molecular Function, terms get more and more specific.
+As one goes further away from the highest level terms Biological Process, Cellular Component and Molecular Function, terms get more and more specific.
 
 ### Enrichment
 
@@ -267,6 +269,7 @@ As we have seen, there are a number of aspects we will need to manage, including
 
 We start with the latter. Use the following code block to extract the population we will compare our set to. Just a few reminders, the population cannot be the whole gene catalog, as not all genes are expressed. Then, should genes that are expressed below the signal to noise cutoff even be considered? After-all they are uninformative. One way to identify the genes rejected by DESeq() during its independent filtering step is to look for genes which have a `NA` value as their FDR (padj). Use the following block to define your population.
 
+
 ```{r population, exercise=TRUE, exercise.eval=FALSE}
 
 ```
@@ -277,23 +280,135 @@ We start with the latter. Use the following code block to extract the population
 ```
 
 ```{r population-hint-2}
-G03_vs_G02_at_T04_simple %>% filter(!is.na(padj))
+population <- DEres %>% filter(!is.na(padj))
 ```
 
 ```{r population-solution}
 # a more advanced solution, keeping only the columns of interest
-population <- G03_vs_G02_at_T04_simple %>% filter(!is.na(padj)) %>% dplyr::select(geneID,padj,log2FoldChange)
+population <- DEres %>% filter(!is.na(padj)) %>% dplyr::select(geneID,padj,log2FoldChange)
 ```
 
-Next, we will set up the objects needed for `topGO`. That information was devised from the `topGo` package vignette.
+Next, we will set up the objects needed for `topGO`. That information was devised from the `topGO` package vignette.
+
+
+<!-- Edoardo: 
+I rewrote some of the following commands to use tidyverse, as they will learn that during the first day.
+I also implemented both padj and FC filter outside of the TopGO analysis, rather than writing a function to do that.
+-->
+
+#### Filtering the data
+Before we run the analysis, we must extract from the population the set of genes we will test for over-representation of GO terms.
+If the population contain information about all the expressed genes, the sets of genes we analyse are the genes that we think might be contributing to our observed phenotype, and they are therefore the group of genes that we want to know the function of.
+In our case, the sets we must extract are the upregulated genes and the downregulated ones.
+
+To get them, we must filter according to padj, as discussed yesterday, but also according to log2FC, so we only get genes significantly more or less expressed in the condition of interest, compared to the control condition.
+
+Write some code to get the list of Upregulated and Downregulated genes, using a padj threshold of 0.01 and a log2FC threshold of 0.5.
+
+```{r genesets, exercise=TRUE, exercise.eval=FALSE}
+
+```
+
+```{r genesets-hint-1}
+?filter
+?is.na
+```
+
+```{r genesets-hint-2}
+Upregulated <- population %>% filter(padj < 0.01) %>% filter(log2FoldChange)
+Downregulated <- population %>% filter(padj < 0.01) %>% filter(log2FoldChange)
+```
+
+```{r genesets-solution}
+Upregulated <- population %>% filter(padj < 0.01) %>% filter(log2FoldChange > 0.5)
+Downregulated <- population %>% filter(padj < 0.01) %>% filter(log2FoldChange < 0.5)
+```
+
+
+#### Loading GO data
+In order to know if a GO term is over-represented in our gene sets of interest, compared to the whole population, we must know which genes are annotated with each GO term.
+Use the following code to load the gene annotation of the species your group is using. Then, filter the dataset so it includes only the genes present in the population:
+
+```{r annotation, exercise=TRUE, exercise.eval=FALSE}
+
+# Spruce GO 
+spruce_genes <- read.csv("/mnt/picea/projects/functional-genomics-course/spring2024/data/week2/GO_ids/spruce_go_new_ids.csv", header = TRUE)
+geneID2GO <- unstack(spruce_genes[,c(1,2)])
+
+# Pine GO 
+pine_genes <- read.csv("/mnt/picea/projects/functional-genomics-course/spring2024/data/week2/GO_ids/Pinsy01_go_ids_mod.csv", header = TRUE)
+geneID2GO <- unstack(pine_genes[,c(1,2)])
+
+# Aspen GO
+geneID2GO <- readMappings("/mnt/picea/projects/functional-genomics-course/spring2024/data/week2/GO_ids/Potra02_go_ids.tsv")[-1]
+
+
+
+```
+
+
+```{r annotation-hint-1}
+?filter
+?select
+?pull
+```
+
+<!-- Edoardo: I do not actually know if the pull command is necessary here -->
+
+```{r annotation-solution}
+# Spruce GO 
+spruce_genes <- read_csv("/mnt/picea/projects/functional-genomics-course/spring2024/data/week2/GO_ids/spruce_go_new_ids.csv")
+geneID2GO <- unstack(spruce_genes[,c(1,2)])
+
+# Pine GO 
+pine_genes <- read_csv("/mnt/picea/projects/functional-genomics-course/spring2024/data/week2/GO_ids/Pinsy01_go_ids_mod.csv")
+geneID2GO <- unstack(pine_genes[,c(1,2)])
+
+# Aspen GO
+geneID2GO <- readMappings("/mnt/picea/projects/functional-genomics-course/spring2024/data/week2/GO_ids/Potra02_go_ids.tsv")[-1]
+
+ExpressedGenes <- population %>% select(geneID) %>% pull()
+geneID2GO <- geneID2GO %>% filter(gene %in% ExpressedGenes)
+
+```
+
+
+
+#### Setting the GOdata object
+In order to run TopGO, we first must define a GOdata object containing the information we collected so far. Namely, it must contain the list of genes included in the population, their GO terms, which type of GO terms we will test for (BP: biological processes, CC: cellular components, MF: molecular functions) and which genes are in our gene set of interest.
+We will test for BPs, which are the GO terms most commonly used, but you can easily investigate the other GO terms using "MF" and "CC".
+Similarly, in the presented code we will run the test for the Upregulated genes, but you should run it also for the downregulated ones.
+
+```{r GOdata, exercise=TRUE}
+geneList <- factor(as.integer(names(geneID2GO) %in% Upregulated))
+names(geneList) <- names(geneID2GO)
+
+GOdata <- new("topGOdata", 
+              ontology = "BP", 
+              allGenes = geneList,
+              annot = annFUN.gene2GO, 
+              gene2GO = geneID2GO)
+
+allGO <- usedGO(GOdata)
+
+
+```
+
+
+
+
+<!--Edoardo: the following part is not necessary anymnore, given that now we filter the dataset before the test
 
 #### Score
+
 We need to have a vector that contains the scores (_e.g._ padj), as a named vector. The names need to be the gene ID that will be present in our GO annotation.
 
 ```{r genelist, exercise=TRUE, exercise.eval=FALSE}
 population.score <- population$padj
 names(population.score) <- sub("\\.\\d+","",population$geneID)
 ```
+
+
 
 #### Significance
 We need a function to define the genes / scores that are significant
@@ -312,6 +427,7 @@ lfc=0.5
 population.score[abs(population$log2FoldChange) <= lfc] <- 1
 ```
 
+
 #### Annotation
 
 Finally, we need to define which Annotation to use. There the documentation of `topGO` is laconic. I figured out that we can use the `org` annotation package from Bioconductor, provide them as a `mapping` and define which `ID` should be used to identify the genes:
@@ -322,7 +438,6 @@ Finally, we need to define which Annotation to use. There the documentation of `
 
 #### Bringing it all together
 
-<!-- TODO hints -->
 
 ```{r go, exercise=TRUE, exercise.eval=FALSE, exercise.timelimit=300, exercise.lines=15}
 library(topGO)
@@ -338,21 +453,33 @@ GOdata <- new("topGOdata",
               ID="ensembl")
 ```
 
+-->
+
 #### Testing
 
 Now that the object is set up (it has retrieved the annotation and linked our gene set), we can define the testing. `topGO` supports the `Parent Child` test, but again, it took a while to find that information.
 
 ```{r test, exercise=TRUE, exercise.eval=FALSE, exercise.timelimit=300}
-test.stat <- new("parentChild",testStatistic = GOFisherTest, name = "Parent Child")
-resultPC <- getSigGroups(GOdata, test.stat)
+resultPC <- runTest(GOdata, 
+                    algorithm = "parentchild",
+                    statistic = "fisher")
 ```
 
 #### Multiple testing correction.
 
-Observe the `topGO` package does not do any multiple testing correction by default (it was very debated back then and the arguments of the authors are still valid). As this is nonetheless IMO recommendable, we run a Benjamini-Hochberg correction:
+Observe the `topGO` package does not do any multiple testing correction by default (it was very debated back then and the arguments of the authors are still valid). As this is nonetheless IMO recommendable, we run a Benjamini-Hochberg correction.
+The function "GenTable" of the TopGO package allows us to export the enriched GOs in a clear dataframe, where we can adjust the pvalue and add the results as an additional column.
+The topnodes argument indicate the number of GOs to be included in the table, in this case we get all of them, but then filter out those that have adjusted pvalues higher than 0.01.
 
 ```{r mtest, exercise=TRUE, exercise.eval=FALSE}
 FDR <- p.adjust(score(resultPC),method="BH")
+allResSig <- GenTable(GOdata, 
+                   parentchildFisher = resultPC, 
+                   orderBy = "parentchildFisher",
+                   topNodes = length(allGO)) %>% 
+  mutate_at(c('parentchildFisher'), as.numeric) %>%
+  mutate(padj = round(p.adjust(parentchildFisher, method = "BH"), digits = 4)) %>%
+  arrange(padj) %>% filter(padj < 0.01)
 ```
 
 #### Results
@@ -378,6 +505,44 @@ It is always interesting to visualise results both for assessing and explaining 
 
 hist(score(resultPC),100)
 
+```
+
+---
+#### Visualizing the more significant GO terms
+A quick analysis to do is to assign to each enriched GO term a score equal to the -log10() of its adjusted pvalue, so the closest the padj is to zero the higher the score will be, and then to visualize which terms have the highest score. They will be the ones with the highest over representation in the gene set of interest, compared to the whole population.
+Can you add to the dataset a column containing these scores?
+
+
+
+```{r resScore, exercise=TRUE, exercise.eval=FALSE}
+allResSig <- allRes %>% filter(padj < 0.05) %>% 
+  mutate(scores = setNames(-log10(weightFisher), GO.ID))
+
+```
+
+
+```{r resScore-hint-1}
+?mutate
+```
+
+
+```{r resScore-solution}
+allResSig <- allResSig %>% mutate(scores = -log10(padj))
+```
+
+
+Then, we can visualize the terms according to their score using a wordcloud, a type of graph where the GO terms with the higher scores will appear bigger:
+
+```{r wordcloud, exercise=TRUE, exercise.eval=FALSE}
+wordcloud(words = allResSig$Term, 
+          freq = allResSig$score, 
+          min.freq = 0,           
+          max.words = 200, 
+          random.order = FALSE, 
+          rot.per = 0, 
+          scale = c(4,.5),  
+          colors = brewer.pal(8, "Dark2"))
+  
 ```
 
 ---
@@ -409,7 +574,22 @@ dir.create(here("analysis/GO"),showWarnings=FALSE)
 write_tsv(enr,file=here("analysis/GO/G03_vs_G02_at_T04_simple-model_GO-enrichment.tsv"))
 ```
 
-Now that we have exported the data, we can use them in other resources, one that I like is [REVIGO](http://revigo.irb.hr). Let's have a look.
+Now that we have exported the data, we can use them in other resources, one that I like is [REVIGO](http://revigo.irb.hr). Copypaste there the names of the enriched GOs and their adjusted pvalue, in two columns, and look at the results.
+
+Revigo returns a plot in which GO terms are represented by circles:
+
+- Circles next to each other represent GO terms with similar meanings.
+- Bigger circles represent more general GO terms.
+- Redder circles represent more significant GO terms.
+
+
+````{r Revigo, eval=TRUE, echo=FALSE}
+knitr::include_graphics("images/Revigo.png")
+````
+
+
+
+<!-- Edoardo: I commented out the hands on as they will not have data from multiple models
 
 ## Hands-on
 
@@ -472,7 +652,11 @@ suppressPackageStartupMessages(showSigOfNodes(GOdata, FDR, firstSigNodes = 5, us
 
 Are the `parent-child` results significantly different than the default of *topGO*, _i.e._ `weight01`? What about the `classic` and `elim` methods?
 
-But, first of all, how did I know about these methods? Mostly by searching on Bioconductor and reading the package [vignette](https://bioconductor.org/packages/release/bioc/html/topGO.html). The package has two functions that can be used to retrieve a list of existing enrichment algorithms and tests.
+-->
+
+#### Comparing algorhitms
+
+So how did I know about these methods? Mostly by searching on Bioconductor and reading the package [vignette](https://bioconductor.org/packages/release/bioc/html/topGO.html). The package has two functions that can be used to retrieve a list of existing enrichment algorithms and tests.
 
 ```{r algo, exercise=TRUE, exercise.eval=FALSE}
 whichAlgorithms()
@@ -489,7 +673,7 @@ parentchildFisher <- runTest(GOdata,algorithm="parentchild",statistic="fisher")
 weight01Fisher <- runTest(GOdata,algorithm="weight01",statistic="fisher")
 ```
 
-The `topGO` package offers a lot of functionalities, including a method to extract the results of a test: `GenTable`. That function is actually very versatile and could be used to compare different sets of results, _e.g._:
+We will again use`GenTable`. That function is actually very versatile and could be used to compare different sets of results, _e.g._:
 
 ```{r comparison, exercise=TRUE, exercise.eval=FALSE, exercise.lines=10}
 
@@ -541,7 +725,7 @@ upset(fromList(apply(dat,2,which)))
 
 This is not much different as an outcome. Both the `elim` and `weight01` function are more conservative. Not knowing which method to choose, one would often resort to doing some sort of benchmarking in addition to literature screening.
 
-### Benchmarking
+### A few words about other tools
 
 There are numerous possibilities for running a GO enrichment analysis in R. A quick search reveals numerous packages, _e.g._ [GOfuncR](https://bioconductor.org/packages/release/bioc/vignettes/GOfuncR/inst/doc/GOfuncR.html), [simplifyEnrichment](https://bioconductor.org/packages/simplifyEnrichment/), [ViSEAGO](https://bioconductor.org/packages/ViSEAGO), [clusterProfiler](https://bioconductor.org/packages/release/bioc/html/clusterProfiler.html), _etc._
 
@@ -587,6 +771,17 @@ symbols <- select(org.Hs.eg.db,keys=names(population.score),columns="SYMBOL",key
 _Note: The issues raised in that paper from 2006: [Babel's tower revisited: a universal resource for cross-referencing across annotation databases](https://academic.oup.com/bioinformatics/article/22/23/2934/278068) are still very much actual. There are many databases, many IDs ultimately containing the same information, still navigating cross-references between them is as tricky as ever._ Hence the last line in the solution above, which is here arbitrarily dropping some of the IDs we retrieve. This is of course suboptimal and one would want a more robust approach to select. Again, this is rather outside the scope of the present tutorial.
 
 ---
+
+
+<!-- Edoardo:
+I would stop the tutorial here, rather than explaining other methods besides TopGO. I think it is good to have less material on the last day, so people that are lagging behind have a chance to catch up (in week1 they have and entire day just for that).
+People with more time can still try, for example, to do a for loop to run the analysis on Upregulared and Downregulated genes at the same time, or they can check out CC and MF terms.
+
+-->
+
+
+
+
 
 #### Testing methods
 
