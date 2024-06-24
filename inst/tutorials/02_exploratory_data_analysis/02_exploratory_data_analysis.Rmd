@@ -99,7 +99,7 @@ if (!exists("metadata_file")) {
 metadata <- read_csv(metadata_file)
 
 #Please do not change the name of this file, as it will be needed afterwards
-write_csv(metadata, "metadata.csv")
+write_csv(metadata, here("inst/tutorials/02_exploratory_data_analysis/metadata.csv"))
 
 
 ```
@@ -176,7 +176,7 @@ but if I do eval=TRUE directly in the solution then the students cannot see the 
 
 ```{r metadata_setup, include=FALSE, eval=TRUE}
 
-samples <- read_csv("metadata.csv",show_col_types=FALSE)
+samples <- read_csv(here("inst/tutorials/02_exploratory_data_analysis/metadata.csv"),show_col_types=FALSE)
 ```
 
 Alright, half of the work done, remains to load the data.
@@ -367,16 +367,18 @@ colnames(txi$counts) <- samples$SampleID
 
 #Let's save the counts to a separate file, in case we need them later:
 
-counts_file <- "PATH_TO_PROJECT_FOLDER/counts.csv"
+counts_file <- here('inst/tutorials/02_exploratory_data_analysis/counts.csv')
 
-#If you do not set your own counts file, a default one is used:
-if (!file.exists(here(counts_file))) {
-  # If the file doesn't exist, use a default file
-  counts_file <- here('inst/tutorials/02_exploratory_data_analysis/counts.csv')
-}
 
 
 write.csv(as.data.frame(txi$counts), file = counts_file)
+
+
+#And let's also save the txi object:
+
+# Save the txi object
+saveRDS(txi, file = here("inst/tutorials/02_exploratory_data_analysis/txi.rds"))
+
 
 # Let's also save the samples, in the right order and with a column indicating their salmon quant files, as a new file. You must uncomment the following line for this to work:
 
@@ -468,7 +470,8 @@ counts <- round(txi$counts)
 Similarly to before, I need counts-solution to be run for following code to be effective
 -->
 ```{r counts_setup, eval=TRUE, include=FALSE}
-counts <- round(txi$counts)
+counts <- read.csv(here('inst/tutorials/02_exploratory_data_analysis/counts.csv'), row.names="X")
+counts <- as.matrix(round(counts))
 ```
 
 
@@ -754,7 +757,7 @@ If you have it in your dataset, this could be the "control" condition, otherwise
 When a gene is identified as "Upregulated" or "Downregulated", it will be upregulated or downregulated in respect to this condition.
 Now try to load the data using DESeq2 commands
 
-```{r dds, exercise=TRUE, exercise.eval=FALSE, exercise.setup="txi_import"}
+```{r dds, exercise=TRUE, exercise.eval=FALSE, exercise.setup="density"}
 suppressPackageStartupMessages(library(DESeq2))
 
 #Here and in the following code, you must substitute "Condition" with your condition of interest
@@ -783,18 +786,21 @@ dds <- DESeqDataSetFromTximport(
 ```
 
 <!-- Edoardo:
-This is another solution whose code needs to be run
+This is another solution whose code needs to be run.
+I cannot think of any easy solution to have the students dynamically set the control condition
 -->
 
 ```{r dds_setup, include= FALSE, eval=TRUE}
 
+samples <- read_csv(here("inst/tutorials/02_exploratory_data_analysis/metadata.csv"),show_col_types=FALSE)
+txi <- readRDS(here("inst/tutorials/02_exploratory_data_analysis/txi.rds"))
 
 
 samples$Condition <- as.factor(samples$Condition)
 samples$Condition <- relevel(samples$Condition, ref = "24h_neg5C")
 
 dds <- DESeqDataSetFromTximport(
-  txi=txi,
+  txi = txi,
   colData = samples,
   design = ~ Condition)
 ```
