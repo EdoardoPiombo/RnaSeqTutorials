@@ -1,9 +1,9 @@
 --- 
 title: "Exploratory Data Analysis (EDA), _a.k.a._ Biological Quality Assessment"
-author: "Nicolas Delhomme for Bn Bioinformatics"
+author: "Edoardo Piombo"
 tutorial:
-  id: "org.bnbio.tutorials.02_exploratory_data_analysis"
-  version: 0.6.2
+  id: "02_exploratory_data_analysis"
+  version: 0.1
 output:
   learnr::tutorial:
     progressive: true
@@ -98,6 +98,9 @@ if (!exists("metadata_file")) {
 
 metadata <- read_csv(metadata_file)
 
+#Please do not change the name of this file, as it will be needed afterwards
+write_csv(metadata, "metadata.csv")
+
 
 ```
 
@@ -135,9 +138,9 @@ head(metadata)
 
 ---
 
-There is a lot more options that can be used to tune importing the data. The `R` language has its origin has a statistical language. Many of the variables we have in our metadata are actually categorical variables, which are best represented in `R` as `factor`s. Re-read the metadata setting the relevant columns as factors.
+There are a lot more options that can be used to tune importing the data. The `R` language has its origin has a statistical language. Many of the variables we have in our metadata are actually categorical variables, which are best represented in `R` as `factor`s. Re-read the metadata setting the relevant columns as factors.
 
-```{r metadata2, exercise=TRUE, exercise.eval=TRUE, message=FALSE, exercise.setup="metadata"}
+```{r metadata2, exercise=TRUE, exercise.eval=TRUE, message=FALSE, exercise.setup="which-comparison"}
 
 metadata <- read_csv(metadata_file)
 ```
@@ -146,7 +149,7 @@ metadata <- read_csv(metadata_file)
 read_csv(...,col_types=...)
 ```
 
-```{r metadata2-solution, eval=TRUE}
+```{r metadata2-solution}
 # multiple solutions are possible
 # using a string
 samples <- read_csv(metadata_file,col_types=c("ccf"))
@@ -163,6 +166,17 @@ samples
 # sometimes you just want the defaults, but also want it to be quiet 
 # (not a solution to the question though! but as good as any a place to mention it)
 samples <- read_csv(metadata_file,show_col_types=FALSE)
+```
+
+<!-- Edoardo
+I need the solution to be run to make the following code successfull,
+but if I do eval=TRUE directly in the solution then the students cannot see the solution, therefore I put it here
+-->
+
+
+```{r metadata_setup, include=FALSE, eval=TRUE}
+
+samples <- read_csv("metadata.csv",show_col_types=FALSE)
 ```
 
 Alright, half of the work done, remains to load the data.
@@ -215,7 +229,9 @@ We will only work with point 1 (Differential Gene Expression) during this course
 #### Relative
 
 Counts have many properties, which we will see in the following, but most importantly, they are **relative** abundances. Indeed, they
+
 1. originate from transcripts of different length
+
 2. are part of sequenced pools of different size (sequencing depth)
 
 ---
@@ -290,7 +306,7 @@ _"Imports transcript-level abundance, estimated counts and transcript lengths, a
 
 Use tximport to load your data. Remember to use the tx2gene file specified for your group on Canvas. This file is necessary if your species has more than one transcript per gene. It should then contain two columns, tab delimited, the first one with the transcript IDs and the second one the corresponding gene ID.
 
-```{r txi_import, exercise= TRUE, exercise.eval=TRUE, exercise.setup = "metadata2-solution"}
+```{r txi_import, exercise= TRUE, exercise.eval=TRUE, exercise.setup = "metadata_setup"}
 library(tximport)
 
 #Specify the path to the tx2gene of the organism used in your group, you find them on Canvas
@@ -304,7 +320,9 @@ if (!file.exists(here(tx2gene_file))) {
 
 
 tx2gene <- read_delim(here(tx2gene_file),delim="\t",
-                                 col_names=c("TXID","GENE"))
+                                 col_names=c("TXID","GENE")
+                      )
+
 
 
 salmon_folder <- "YOUR_SALMON_FOLDER"
@@ -340,7 +358,10 @@ stopifnot(all(match(sub("_S[0-9]+_L00[0-9]_sortmerna_trimmomatic.*","",basename(
 samples <- samples %>% mutate(Filenames = filelist)
 txi <- tximport(files = samples$Filenames,
                                  type = "salmon",
-                                 tx2gene=tx2gene)
+                                 tx2gene=tx2gene
+                )
+
+
 
 colnames(txi$counts) <- samples$SampleID
 
@@ -388,7 +409,7 @@ quiz(caption="`tximport` object",
               answer("Both are counts",correct=TRUE),
               answer("The first is reported in TPM",correct=TRUE),
               answer("The second is the raw estimates reported by salmon",correct=TRUE),
-              incorrect="All are true, as `countsFromAbundance` is `no`"
+              incorrect="All are true, as the `countsFromAbundance` salmon parameter was set to `no`"
               ),
      question("What about the 'length', what does it contain?",
               answer("The expected length of the transcripts."),
@@ -399,7 +420,7 @@ quiz(caption="`tximport` object",
               answer("the summarised per-sample inferential replicate information",correct=TRUE),
               answer("the variance of the 'length'"),
               answer("the variance of the 'abundance'"),
-              incorrect="Reread what is just above that quiz :-)"
+              incorrect="Reread what it is just above that quiz :-)"
               )
      )
 ```
@@ -442,6 +463,16 @@ Integers is a fancy coding name for "numbers without decimals". Sometimes you ca
 ```{r counts-solution}
 counts <- round(txi$counts)
 ```
+
+<!-- Edoardo:
+Similarly to before, I need counts-solution to be run for following code to be effective
+-->
+```{r counts_setup, eval=TRUE, include=FALSE}
+counts <- round(txi$counts)
+```
+
+
+
 
 <!-- Edoardo: I commented the following part, as they should have already done that at this point
 
@@ -524,7 +555,7 @@ tibble(x=colnames(counts),
   bind_cols(samples)
 ```
 
-```{r tibble,  exercise=TRUE, exercise.eval=FALSE, exercise.setup="counts-solution"}
+```{r tibble,  exercise=TRUE, exercise.eval=FALSE, exercise.setup="counts_setup"}
 
 ```
 
@@ -751,13 +782,32 @@ dds <- DESeqDataSetFromTximport(
   design = ~ Condition)
 ```
 
+<!-- Edoardo:
+This is another solution whose code needs to be run
+-->
+
+```{r dds_setup, include= FALSE, eval=TRUE}
+
+
+
+samples$Condition <- as.factor(samples$Condition)
+samples$Condition <- relevel(samples$Condition, ref = "24h_neg5C")
+
+dds <- DESeqDataSetFromTximport(
+  txi=txi,
+  colData = samples,
+  design = ~ Condition)
+```
+
+
+
  **Note:**
 See the warning we got? Well, up there reading the metadata, the last command reset samples to have all columns as characters. This is `R` default since version 4, but in previous versions, factors were the default to represent alphanumeric values.
 
 
 Before we proceed, take a few instants to familiarise with the `DESeqDataSet` object.
 Then, save the dds object like an rda file (a file format used to save this type of objects), so that we can import it again tomorrow.
-```{r dds-what, exercise=TRUE, exercise.eval=TRUE, exercise.setup="dds-solution"}
+```{r dds-what, exercise=TRUE, exercise.eval=TRUE, exercise.setup="dds_setup"}
 dds
 colData(dds)
 colnames(dds)
@@ -784,7 +834,7 @@ If you observe the example above, you will realise that all the function calls p
 
 Now that we have the object ready, we can estimate the normalisation factor for the difference in sequencing depth using `DESeq2` `estimateSizeFactors()` function. Write the code to do so.
 
-```{r size_factors, exercise=TRUE, exercise.eval=FALSE, exercise.setup="dds-solution"}
+```{r size_factors, exercise=TRUE, exercise.eval=FALSE, exercise.setup="dds_setup"}
 
 ```
 
@@ -798,7 +848,7 @@ dds <- estimateSizeFactors(dds)
 
 As you may observe, `DESeq2` informs us that it will use the average transcript length to correct the expression values. The size factor will be calculated per gene per library, so the `DESeq2` function `normalizationFactor()` will return a matrix. Our next assessment is to figure out how (dis)similar these factors are across our dataset. Revisit the code we wrote for visualising the raw data count distribution per sample to visualise the normalisation factor. Instead of a `geom_bar()`, try to use a `geom_violin()`
 
-```{r norm_factor, exercise=TRUE, exercise.eval=FALSE, exercise.setup="dds-solution"}
+```{r norm_factor, exercise=TRUE, exercise.eval=FALSE, exercise.setup="dds_setup"}
 
 ```
 
@@ -844,7 +894,7 @@ Now that we have seen how the library size normalisation works, and that most li
 To address both issues 3. and 4. (that are by the way not corrected when you export using `DESeq2` `counts(dds,normalised=TRUE)` function call), we will use another `DESeq2` function called `varianceStabilizingTransformation()`
 As for dds, we save the vst object in rda format
 
-```{r vst, exercise=TRUE, exercise.eval=TRUE, exercise.setup="dds-solution"}
+```{r vst, exercise=TRUE, exercise.eval=TRUE, exercise.setup="dds_setup"}
 vsd <- varianceStabilizingTransformation(dds, blind=TRUE)
 vst <- assay(vsd)
 vst <- vst - min(vst)
