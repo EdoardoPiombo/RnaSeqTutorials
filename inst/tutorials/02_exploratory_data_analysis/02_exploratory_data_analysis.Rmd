@@ -11,7 +11,7 @@ output:
 runtime: shiny_prerendered
 ---
 
-```{r setup, include=FALSE}
+```{r setup, echo=FALSE, eval=TRUE}
 # to run locally replace tutorials/02_exploratory_data_analysis/www with inst/tutorials/02_exploratory_data_analysis/www
 
 # to run as an app replace tutorials/02_exploratory_data_analysis/www with www
@@ -79,7 +79,7 @@ This question was a quiz originally, but since the answer would change with ever
   2. the function `read_csv` is only one of many functions from the `readr` package, a part of tidyverse. Check its [cheatsheet](https://readr.tidyverse.org/index.html#cheatsheet). You can also read in data directly from a Google Sheet!
   3. [chapter 11](https://r4ds.had.co.nz/data-import.html#getting-started) explains in great details the mechanism of how `readr` parses the data and how you can fine tune it to your needs. While this is relatively infrequent in practice, it is good to know where to look for, whenever needed.
 
-```{r which-comparison, exercise=TRUE}
+```{r which-comparison, exercise=TRUE, exercise.eval=TRUE}
 library(here)
 library(readr)
 
@@ -87,7 +87,11 @@ library(readr)
 metadata_file <- 'your_metadata_file.csv'
 
 #If you do not set your own metadata file, a default one is used:
-if (!file.exists(here(metadata_file))) {
+# Check if 'metadata_file' is defined
+if (!exists("metadata_file")) {
+  # If 'metadata_file' is not defined, define it
+  metadata_file <- here('inst/tutorials/02_exploratory_data_analysis/02_exploratory_data_analysis_files/pine_cold_root_metadata.csv')
+} else if (!file.exists(here(metadata_file))) {
   # If the file doesn't exist, use a default file
   metadata_file <- here('inst/tutorials/02_exploratory_data_analysis/02_exploratory_data_analysis_files/pine_cold_root_metadata.csv')
 }
@@ -116,9 +120,12 @@ As mentioned, this tutorial focuses on point 1, which includes the following ste
 
 We have translated the information from the study abstract into a file called [samples_table.tsv](tutorials/02_exploratory_data_analysis/www/samples_table.tsv), which looks like this:
 
-```{r sample,echo=FALSE}
+```{r metadata,echo=FALSE, eval=TRUE}
 ## They should have already loaded the metadata at this point
-if (!file.exists(here(metadata_file))) {
+if (!exists("metadata_file")) {
+  # If 'metadata_file' is not defined, define it
+  metadata_file <- here('inst/tutorials/02_exploratory_data_analysis/02_exploratory_data_analysis_files/pine_cold_root_metadata.csv')
+} else if (!file.exists(here(metadata_file))) {
   # If the file doesn't exist, use a default file
   metadata_file <- here('inst/tutorials/02_exploratory_data_analysis/02_exploratory_data_analysis_files/pine_cold_root_metadata.csv')
 }
@@ -131,6 +138,7 @@ head(metadata)
 There is a lot more options that can be used to tune importing the data. The `R` language has its origin has a statistical language. Many of the variables we have in our metadata are actually categorical variables, which are best represented in `R` as `factor`s. Re-read the metadata setting the relevant columns as factors.
 
 ```{r metadata2, exercise=TRUE, exercise.eval=TRUE, message=FALSE, exercise.setup="metadata"}
+
 metadata <- read_csv(metadata_file)
 ```
 
@@ -138,7 +146,7 @@ metadata <- read_csv(metadata_file)
 read_csv(...,col_types=...)
 ```
 
-```{r metadata2-solution}
+```{r metadata2-solution, eval=TRUE}
 # multiple solutions are possible
 # using a string
 samples <- read_csv(metadata_file,col_types=c("cfff"))
@@ -283,7 +291,7 @@ _"Imports transcript-level abundance, estimated counts and transcript lengths, a
 
 Use tximport to load your data. Remember to use the tx2gene file specified for your group on Canvas. This file is necessary if your species has more than one transcript per gene. It should then contain two columns, tab delimited, the first one with the transcript IDs and the second one the corresponding gene ID.
 
-```{r txi_import, exercise= TRUE}
+```{r txi_import, exercise= TRUE, exercise.eval=TRUE, exercise.setup = "metadata2-solution"}
 library(tximport)
 
 #Specify the path to the tx2gene of the organism used in your group, you find them on Canvas
@@ -348,7 +356,7 @@ if (!file.exists(here(counts_file))) {
 }
 
 
-write.csv(as.data.frame(counts), file = counts_file)
+write.csv(as.data.frame(txi$counts), file = counts_file)
 
 # Let's also save the samples, in the right order and with a column indicating their salmon quant files, as a new file. You must uncomment the following line for this to work:
 
@@ -375,8 +383,8 @@ quiz(caption="`tximport` object",
               answer("a list",correct=TRUE),
               answer("a data.frame"),
               answer("an S4 object")),
-     text_input("How many values are stored in it?"),
-     text_input("How many samples and how many genes were reported?"),
+     textInput("num_values", "How many values are stored in it?"),
+     textInput("num_genes", "How many samples and how many genes were reported?"),
      question("Looking at the value names, what is the difference between 'abundance' and 'counts'?",
               answer("Both are counts",correct=TRUE),
               answer("The first is reported in TPM",correct=TRUE),
@@ -421,7 +429,9 @@ quiz(caption="raw or TPM, that is the question",
 Write the code to extract the counts and apply a function to convert them to integers.
 Integers is a fancy coding name for "numbers without decimals". Sometimes you can have decimal numbers in counts, for example because some programs assign "0.5" value to two transcripts when a read maps equally well to both of them. We must round all values so we do not have decimals, otherwise some of the programs of the following steps will not work.
 
-```{r counts, exercise=TRUE, exercise.eval=FALSE, exercise.setup="tximport"}
+
+
+```{r counts, exercise=TRUE, exercise.eval=FALSE, exercise.setup="txi_import"}
 
 ```
 
@@ -476,7 +486,8 @@ quiz(caption="Does it matter?",
 
 One of the first question is to figure out how many of the genes are never observed in any of the samples. Write the code to get that as a percentage of the total number of genes
 
-```{r noexp, exercise=TRUE, exercise.eval=FALSE, exercise.setup="sanity"}
+
+```{r noexp, exercise=TRUE, exercise.eval=FALSE}
 
 ```
 
@@ -514,7 +525,7 @@ tibble(x=colnames(counts),
   bind_cols(samples)
 ```
 
-```{r tibble,  exercise=TRUE, exercise.eval=FALSE, exercise.setup="noexp"}
+```{r tibble,  exercise=TRUE, exercise.eval=FALSE, exercise.setup="counts-solution"}
 
 ```
 
@@ -713,7 +724,7 @@ If you have it in your dataset, this could be the "control" condition, otherwise
 When a gene is identified as "Upregulated" or "Downregulated", it will be upregulated or downregulated in respect to this condition.
 Now try to load the data using DESeq2 commands
 
-```{r dds, exercise=TRUE, exercise.eval=FALSE, exercise.setup="tximport"}
+```{r dds, exercise=TRUE, exercise.eval=FALSE, exercise.setup="txi_import"}
 suppressPackageStartupMessages(library(DESeq2))
 
 #Here and in the following code, you must substitute "Condition" with your condition of interest
@@ -747,7 +758,7 @@ See the warning we got? Well, up there reading the metadata, the last command re
 
 Before we proceed, take a few instants to familiarise with the `DESeqDataSet` object.
 Then, save the dds object like an rda file (a file format used to save this type of objects), so that we can import it again tomorrow.
-```{r dds-what, exercise=TRUE, exercise.eval=FALSE, exercise.setup="dds-rds"}
+```{r dds-what, exercise=TRUE, exercise.eval=TRUE, exercise.setup="dds-solution"}
 dds
 colData(dds)
 colnames(dds)
@@ -774,7 +785,7 @@ If you observe the example above, you will realise that all the function calls p
 
 Now that we have the object ready, we can estimate the normalisation factor for the difference in sequencing depth using `DESeq2` `estimateSizeFactors()` function. Write the code to do so.
 
-```{r size_factors, exercise=TRUE, exercise.eval=FALSE, exercise.setup="dds-rds"}
+```{r size_factors, exercise=TRUE, exercise.eval=FALSE, exercise.setup="dds-solution"}
 
 ```
 
@@ -788,7 +799,7 @@ dds <- estimateSizeFactors(dds)
 
 As you may observe, `DESeq2` informs us that it will use the average transcript length to correct the expression values. The size factor will be calculated per gene per library, so the `DESeq2` function `normalizationFactor()` will return a matrix. Our next assessment is to figure out how (dis)similar these factors are across our dataset. Revisit the code we wrote for visualising the raw data count distribution per sample to visualise the normalisation factor. Instead of a `geom_bar()`, try to use a `geom_violin()`
 
-```{r norm_factor, exercise=TRUE, exercise.eval=FALSE, exercise.setup="dds-rds"}
+```{r norm_factor, exercise=TRUE, exercise.eval=FALSE, exercise.setup="dds-solution"}
 
 ```
 
@@ -834,7 +845,7 @@ Now that we have seen how the library size normalisation works, and that most li
 To address both issues 3. and 4. (that are by the way not corrected when you export using `DESeq2` `counts(dds,normalised=TRUE)` function call), we will use another `DESeq2` function called `varianceStabilizingTransformation()`
 As for dds, we save the vst object in rda format
 
-```{r vst, exercise=TRUE, exercise.eval=FALSE, exercise.timelimit=600, exercise.setup="dds-rds"}
+```{r vst, exercise=TRUE, exercise.eval=TRUE, exercise.setup="dds-solution"}
 vsd <- varianceStabilizingTransformation(dds, blind=TRUE)
 vst <- assay(vsd)
 vst <- vst - min(vst)
@@ -963,7 +974,7 @@ dev.null <- apply(combn(1:3,2),2,function(co){
 
 ```{r twod-quiz}
 quiz(caption="What can we conclude?",
-     text_input()
+     textAreaInput("your_conclusions", "")
      )
 ```
 
