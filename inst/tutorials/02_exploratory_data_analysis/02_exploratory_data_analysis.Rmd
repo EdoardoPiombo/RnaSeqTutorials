@@ -11,7 +11,7 @@ output:
 runtime: shiny_prerendered
 ---
 
-```{r setup, echo=FALSE, eval=TRUE}
+```{r setup, include=FALSE, eval=TRUE}
 # to run locally replace tutorials/02_exploratory_data_analysis/www with inst/tutorials/02_exploratory_data_analysis/www
 
 # to run as an app replace tutorials/02_exploratory_data_analysis/www with www
@@ -149,17 +149,16 @@ read_csv(...,col_types=...)
 ```{r metadata2-solution, eval=TRUE}
 # multiple solutions are possible
 # using a string
-samples <- read_csv(metadata_file,col_types=c("cfff"))
+samples <- read_csv(metadata_file,col_types=c("ccf"))
 samples
 # setting a default overall
 samples <- read_csv(metadata_file,col_types=cols(.default=col_factor()))
 samples
 # or you can have an extensive control of all variables.
 # if you replace cols() with cols_only(), you can control the columns that are kept
-samples <- read_csv(metadata_file,col_types=cols(sample_id=col_character(),
-                                               replicate=col_factor(),
-                                               time=col_factor(),
-                                               treatment=col_factor()))
+samples <- read_csv(metadata_file,col_types=cols(SampleID=col_character(),
+                                                 SampleName=col_character(),
+                                                 Condition=col_factor()))
 samples
 # sometimes you just want the defaults, but also want it to be quiet 
 # (not a solution to the question though! but as good as any a place to mention it)
