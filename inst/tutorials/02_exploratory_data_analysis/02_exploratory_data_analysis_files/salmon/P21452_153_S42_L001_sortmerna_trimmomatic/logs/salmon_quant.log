@@ -1,0 +1,59 @@
+[2024-04-19 16:06:34.326] [jointLog] [info] setting maxHashResizeThreads to 2
+[2024-04-19 16:06:34.326] [jointLog] [info] Fragment incompatibility prior below threshold.  Incompatible fragments will be ignored.
+[2024-04-19 16:06:34.326] [jointLog] [info] Usage of --validateMappings implies use of minScoreFraction. Since not explicitly specified, it is being set to 0.65
+[2024-04-19 16:06:34.327] [jointLog] [info] Setting consensusSlack to selective-alignment default of 0.35.
+[2024-04-19 16:06:34.327] [jointLog] [info] parsing read library format
+[2024-04-19 16:06:34.328] [jointLog] [info] There is 1 library.
+[2024-04-19 16:06:34.330] [jointLog] [info] Loading pufferfish index
+[2024-04-19 16:06:34.331] [jointLog] [info] Loading dense pufferfish index.
+[2024-04-19 16:06:36.617] [jointLog] [info] done
+[2024-04-19 16:06:36.716] [jointLog] [info] Index contained 49342 targets
+[2024-04-19 16:06:37.635] [jointLog] [info] Number of decoys : 0
+[2024-04-19 16:06:39.382] [jointLog] [info] Automatically detected most likely library type as ISF
+
+[2024-04-19 16:19:07.905] [fileLog] [info] 
+At end of round 0
+==================
+Observed 38178890 total fragments (38178890 in most recent round)
+
+[2024-04-19 16:19:07.801] [jointLog] [info] Thread saw mini-batch with a maximum of 1.36% zero probability fragments
+[2024-04-19 16:19:07.820] [jointLog] [info] Thread saw mini-batch with a maximum of 1.68% zero probability fragments
+[2024-04-19 16:19:07.904] [jointLog] [info] Computed 117289 rich equivalence classes for further processing
+[2024-04-19 16:19:07.904] [jointLog] [info] Counted 31025703 total reads in the equivalence classes 
+[2024-04-19 16:19:07.906] [jointLog] [info] Number of mappings discarded because of alignment score : 4757138
+[2024-04-19 16:19:07.906] [jointLog] [info] Number of fragments entirely discarded because of alignment score : 2664206
+[2024-04-19 16:19:07.906] [jointLog] [info] Number of fragments discarded because they are best-mapped to decoys : 0
+[2024-04-19 16:19:07.906] [jointLog] [info] Number of fragments discarded because they have only dovetail (discordant) mappings to valid targets : 207192
+[2024-04-19 16:19:07.906] [jointLog] [info] Mapping rate = 81.264%
+
+[2024-04-19 16:19:07.906] [jointLog] [info] finished quantifyLibrary()
+[2024-04-19 16:19:07.908] [jointLog] [info] Starting optimizer
+[2024-04-19 16:19:07.949] [jointLog] [info] Marked 0 weighted equivalence classes as degenerate
+[2024-04-19 16:19:07.960] [jointLog] [info] iteration = 0 | max rel diff. = 23222.9
+[2024-04-19 16:19:08.045] [jointLog] [info] iteration 11, adjusting effective lengths to account for biases
+[2024-04-19 16:20:05.683] [jointLog] [info] Computed expected counts (for bias correction)
+[2024-04-19 16:20:05.684] [jointLog] [info] processed bias for 0.0% of the transcripts
+[2024-04-19 16:20:11.774] [jointLog] [info] processed bias for 10.0% of the transcripts
+[2024-04-19 16:20:17.727] [jointLog] [info] processed bias for 20.0% of the transcripts
+[2024-04-19 16:20:23.779] [jointLog] [info] processed bias for 30.0% of the transcripts
+[2024-04-19 16:20:29.772] [jointLog] [info] processed bias for 40.0% of the transcripts
+[2024-04-19 16:20:35.992] [jointLog] [info] processed bias for 50.0% of the transcripts
+[2024-04-19 16:20:41.965] [jointLog] [info] processed bias for 60.0% of the transcripts
+[2024-04-19 16:20:48.181] [jointLog] [info] processed bias for 70.0% of the transcripts
+[2024-04-19 16:20:54.001] [jointLog] [info] processed bias for 80.0% of the transcripts
+[2024-04-19 16:20:59.848] [jointLog] [info] processed bias for 90.0% of the transcripts
+[2024-04-19 16:21:06.167] [jointLog] [info] processed bias for 100.0% of the transcripts
+[2024-04-19 16:21:06.849] [jointLog] [info] iteration = 100 | max rel diff. = 0.461706
+[2024-04-19 16:21:07.581] [jointLog] [info] iteration = 200 | max rel diff. = 2.84389
+[2024-04-19 16:21:08.310] [jointLog] [info] iteration = 300 | max rel diff. = 3.55783
+[2024-04-19 16:21:09.038] [jointLog] [info] iteration = 400 | max rel diff. = 0.0766951
+[2024-04-19 16:21:09.293] [jointLog] [info] iteration = 436 | max rel diff. = 0.00812828
+[2024-04-19 16:21:09.301] [jointLog] [info] Finished optimizer
+[2024-04-19 16:21:09.301] [jointLog] [info] writing output 
+
+[2024-04-19 16:21:09.422] [jointLog] [info] Starting Gibbs Sampler
+[2024-04-19 16:22:21.619] [jointLog] [info] Finished Gibbs Sampler
+[2024-04-19 16:22:21.619] [jointLog] [info] writing equivalence class counts.
+[2024-04-19 16:22:21.620] [jointLog] [info] Collapsing factorization information into simplified equivalence classes.
+[2024-04-19 16:22:21.665] [jointLog] [info] done.
+[2024-04-19 16:22:21.976] [jointLog] [info] done writing equivalence class counts.

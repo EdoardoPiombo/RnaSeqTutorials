@@ -118,6 +118,10 @@ We have translated the information from the study abstract into a file called [s
 
 ```{r sample,echo=FALSE}
 ## They should have already loaded the metadata at this point
+if (!file.exists(here(metadata_file))) {
+  # If the file doesn't exist, use a default file
+  metadata_file <- here('inst/tutorials/02_exploratory_data_analysis/02_exploratory_data_analysis_files/pine_cold_root_metadata.csv')
+}
 head(metadata)
 ```
 

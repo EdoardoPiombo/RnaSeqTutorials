@@ -1,0 +1,15 @@
+{
+    "salmon_version": "1.9.0",
+    "threads": "2",
+    "index": "/crex/proj/uppstore2017145/V2/users/teitu/RNAseq.pine_preprocessing/salmon/codingIndexPine",
+    "libType": "A",
+    "mates1": "/crex/proj/uppstore2017145/V2/users/teitu/RNAseq.pine_preprocessing/cold/trimmomatic/P21452_153_S42_L001_sortmerna_trimmomatic_1.fq.gz",
+    "mates2": "/crex/proj/uppstore2017145/V2/users/teitu/RNAseq.pine_preprocessing/cold/trimmomatic/P21452_153_S42_L001_sortmerna_trimmomatic_2.fq.gz",
+    "output": "/crex/proj/uppstore2017145/V2/users/teitu/RNAseq.pine_preprocessing/cold/salmon/P21452_153_S42_L001_sortmerna_trimmomatic",
+    "gcBias": [],
+    "seqBias": [],
+    "posBias": [],
+    "dumpEq": [],
+    "numGibbsSamples": "100",
+    "auxDir": "aux_info"
+}

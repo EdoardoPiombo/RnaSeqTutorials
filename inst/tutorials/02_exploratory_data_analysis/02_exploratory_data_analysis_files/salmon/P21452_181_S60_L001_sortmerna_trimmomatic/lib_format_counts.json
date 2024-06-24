@@ -1,0 +1,22 @@
+{
+    "read_files": "[ /crex/proj/uppstore2017145/V2/users/teitu/RNAseq.pine_preprocessing/cold/trimmomatic/P21452_181_S60_L001_sortmerna_trimmomatic_1.fq.gz, /crex/proj/uppstore2017145/V2/users/teitu/RNAseq.pine_preprocessing/cold/trimmomatic/P21452_181_S60_L001_sortmerna_trimmomatic_2.fq.gz]",
+    "expected_format": "ISF",
+    "compatible_fragment_ratio": 1.0,
+    "num_compatible_fragments": 19380907,
+    "num_assigned_fragments": 19380907,
+    "num_frags_with_concordant_consistent_mappings": 18531477,
+    "num_frags_with_inconsistent_or_orphan_mappings": 957727,
+    "strand_mapping_bias": 0.9999100530379519,
+    "MSF": 0,
+    "OSF": 0,
+    "ISF": 18531477,
+    "MSR": 0,
+    "OSR": 0,
+    "ISR": 1667,
+    "SF": 566701,
+    "SR": 389359,
+    "MU": 0,
+    "OU": 0,
+    "IU": 0,
+    "U": 0
+}
