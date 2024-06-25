@@ -61,6 +61,50 @@ source(here("inst/tutorials/02_exploratory_data_analysis/www/featureSelection.R"
 # sels <- rangeFeatureSelect(counts=vst,conditions=conds,plot=FALSE)
 ```
 
+## This is a `learnr` tutorial
+
+If you are already familiar with such tutorials, feel free to jump directly to the `Introduction` in the menu on the left.
+
+### First time
+This is a `learnr` interactive tutorial.
+
+1. The tutorial is meant to guide your learning
+2. It consists of a mix of instructions, exercises and quizzes
+3. Exercises are displayed as grey boxes, where you write `R` code to complete the task
+4. Once ready, you can click on `Run Code`
+5. You can at any time `Start Over` by using the corresponding button, whether for an exercise or the overall tutorial (left menu)
+6. Some exercises might have a `Hint` button, to provide well, you'll guess it
+7. Some exercises might have a `Solution` button
+8. The tutorial will reveal as you progress
+9. You can skip sections for which you do not find the solution, just click on `Continue` at the bottom of the section you are at.
+10. Your progress is saved. You can go through the tutorial at your own pace and convenience
+
+That is pretty much all there is about them, let us go through a few examples to demonstrate.
+
+### Examples
+
+*Here's a simple exercise with an empty code chunk provided for entering the answer.*
+
+Write the R code required to add two plus two:
+
+```{r two-plus-two, exercise=TRUE}
+
+```
+
+### Exercise with Code
+
+*Here's an exercise with some pre-populated code.*
+<!-- Here I just removed stuff about the function -->
+
+Now assign a  numeric value to a and b and then add a line to sum them:
+
+```{r add-function, exercise=TRUE, exercise.lines = 5}
+a <- 
+b <- 
+
+
+```
+
 ## Introduction
 
 In this tutorial, we will take a look at the RNAseq data that you generated last week.
