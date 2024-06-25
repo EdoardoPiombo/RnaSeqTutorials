@@ -1,6 +1,6 @@
 --- 
 title: "Exploratory Data Analysis (EDA), _a.k.a._ Biological Quality Assessment"
-author: "Edoardo Piombo"
+author: "Edoardo Piombo and Nicolas Delhomme"
 tutorial:
   id: "02_exploratory_data_analysis"
   version: 0.1
@@ -68,7 +68,7 @@ In this tutorial, we will take a look at the RNAseq data that you generated last
 
 For this tutorial, you will work with a number of samples deriving from two conditions.
 
-Explore the metadata file and consider which comparison is could you do with your data.
+Explore the metadata file and consider which comparison you could you do with your data.
 
 <!-- Edoardo
 This question was a quiz originally, but since the answer would change with every group I though of just leaving an open question.-->
@@ -306,6 +306,8 @@ _"Imports transcript-level abundance, estimated counts and transcript lengths, a
 
 Use tximport to load your data. Remember to use the tx2gene file specified for your group on Canvas. This file is necessary if your species has more than one transcript per gene. It should then contain two columns, tab delimited, the first one with the transcript IDs and the second one the corresponding gene ID.
 
+
+
 ```{r txi_import, exercise= TRUE, exercise.eval=TRUE, exercise.setup = "metadata_setup"}
 library(tximport)
 
@@ -319,6 +321,7 @@ if (!file.exists(here(tx2gene_file))) {
 }
 
 
+#The next two command lines appear on the same line in the learnr tutorial and I do not know why
 tx2gene <- read_delim(here(tx2gene_file),delim="\t",
                                  col_names=c("TXID","GENE")
                       )
@@ -470,8 +473,9 @@ counts <- round(txi$counts)
 Similarly to before, I need counts-solution to be run for following code to be effective
 -->
 ```{r counts_setup, eval=TRUE, include=FALSE}
-counts <- read.csv(here('inst/tutorials/02_exploratory_data_analysis/counts.csv'), row.names="X")
-counts <- as.matrix(round(counts))
+txi <- readRDS(here("inst/tutorials/02_exploratory_data_analysis/txi.rds"))
+counts <- round(txi$counts)
+samples <- read_csv(here("inst/tutorials/02_exploratory_data_analysis/metadata.csv"),show_col_types=FALSE)
 ```
 
 
@@ -520,7 +524,7 @@ quiz(caption="Does it matter?",
 One of the first question is to figure out how many of the genes are never observed in any of the samples. Write the code to get that as a percentage of the total number of genes
 
 
-```{r noexp, exercise=TRUE, exercise.eval=FALSE}
+```{r noexp, exercise=TRUE, exercise.eval=FALSE, exercise.setup="counts_setup"}
 
 ```
 
@@ -587,6 +591,8 @@ dat <- tibble(TotalCounts=colSums(counts)) %>%
 ```
 
 ```{r barplot-hint-2}
+dat <- tibble(TotalCounts=colSums(counts)) %>% 
+  bind_cols(samples)
 #In the following code, you should substitute "Condition" with the name of the column containing the condition changing in your samples.
 ggplot(dat,aes(x=,y=,fill=)) + 
   geom_col() + 
@@ -618,7 +624,11 @@ quiz(caption="Assumption",
 ```
 
 #### SD per sample
-As we just saw, some samples have more sequencing depth than others. That previous visualisation however does not inform us on the distribution of reads within individual samples. To achieve this we will again need to transform the data. We will convert the counts onto a log10 scale and store them in a `data.frame()`. Then we will use the `tibble` package `rownames_to_column()`, `tidyr` `pivot_longer` and `dplyr` `starts_with()` and `left_join()` functions to convert the data and associate it with the sample information. Write the code to reproduce the following table.
+As we just saw, some samples have more sequencing depth than others. That previous visualisation however does not inform us on the distribution of reads within individual samples. To achieve this we will again need to transform the data. We will convert the counts onto a log10 scale and store them in a `data.frame()`.
+
+Then we will use the `tibble` package `rownames_to_column()`, `tidyr` `pivot_longer` and `dplyr` `starts_with()` and `left_join()` functions to convert the data and associate it with the sample information.
+
+Write the code to reproduce the following table.
 
 ```{r pivot-view, echo=FALSE, eval=TRUE}
 #In the following code, you should substitute "P21452" with the start of the name of your samples.
@@ -662,7 +672,7 @@ dat <- as.data.frame(log10(counts)) %>%
   left_join(samples,by=c("SampleID"))
 ```
 
-Now that we have the data in the right shape, we can visualise it. For that we can use the density geom, and as while we want to visualise the individual samples, we need to have a corresponding `group` aesthetic.
+Now that we have the data in the right shape, we can visualise it. For that we can use the density geom, and as we want to visualise the individual samples, we need to have a corresponding `group` aesthetic.
 
 ```{r density, exercise=TRUE, exercise.eval=FALSE, exercise.lines=18, exercise.setup="pivot"}
 dat <- as.data.frame(log10(counts)) %>% 
@@ -687,6 +697,13 @@ ggplot(dat,aes(x=x,group=GROUP,col=COLOR)) +
 ```
 
 ```{r density-solution}
+dat <- as.data.frame(log10(counts)) %>% 
+  rownames_to_column() %>% 
+  pivot_longer(starts_with("P21452"),
+               names_to="SampleID",
+               values_to="x") %>% 
+  left_join(samples,by=c("SampleID"))
+
 ggplot(dat,aes(x=x,group=SampleID,col=Condition)) + 
   geom_density(na.rm = TRUE) + 
   ggtitle("sample raw counts distribution") +
@@ -757,7 +774,7 @@ If you have it in your dataset, this could be the "control" condition, otherwise
 When a gene is identified as "Upregulated" or "Downregulated", it will be upregulated or downregulated in respect to this condition.
 Now try to load the data using DESeq2 commands, and then save it as an rds file
 
-```{r dds, exercise=TRUE, exercise.eval=FALSE, exercise.setup="density"}
+```{r dds, exercise=TRUE, exercise.eval=FALSE, exercise.setup="counts_setup"}
 suppressPackageStartupMessages(library(DESeq2))
 
 #Here and in the following code, you must substitute "Condition" with your condition of interest
@@ -769,7 +786,7 @@ samples$Condition <- relevel(samples$Condition, ref = "24h_neg5C")
 dds <- 
   
   
-saveRDS(txi, file = here("inst/tutorials/02_exploratory_data_analysis/dds.rds"))
+saveRDS(dds, file = here("inst/tutorials/02_exploratory_data_analysis/dds.rds"))
   
 
 ```
@@ -781,6 +798,7 @@ _Note:_ `suppressPackageStartupMessages()` is very useful to silence all message
 ```
 
 ```{r dds-solution}
+suppressPackageStartupMessages(library(DESeq2))
 samples$Condition <- as.factor(samples$Condition)
 samples$Condition <- relevel(samples$Condition, ref = "24h_neg5C")
 
@@ -812,12 +830,19 @@ See the warning we got? Well, up there reading the metadata, the last command re
 Before we proceed, take a few instants to familiarise with the `DESeqDataSet` object.
 
 ```{r dds-what, exercise=TRUE, exercise.eval=TRUE, exercise.setup="dds_setup"}
+#The following commands appear all on the same line in my learnr, I do not know why
 dds
+
 colData(dds)
+
 colnames(dds)
+
 head(rownames(dds))
+
 head(assay(dds))
+
 head(assay(dds,"avgTxLength"))
+
 metadata(dds)
 
 ```
@@ -845,7 +870,7 @@ dds <- estimateSizeFactors(dds)
 As you may observe, `DESeq2` informs us that it will use the average transcript length to correct the expression values. The size factor will be calculated per gene per library, so the `DESeq2` function `normalizationFactor()` will return a matrix. Our next assessment is to figure out how (dis)similar these factors are across our dataset. Revisit the code we wrote for visualising the raw data count distribution per sample to visualise the normalisation factor. Instead of a `geom_bar()`, try to use a `geom_violin()`
 
 ```{r norm_factor, exercise=TRUE, exercise.eval=FALSE, exercise.setup="dds_setup"}
-
+dds <- estimateSizeFactors(dds)
 ```
 
 ```{r norm_factor-hint}
@@ -858,6 +883,7 @@ As you may observe, `DESeq2` informs us that it will use the average transcript 
 ```
 
 ```{r norm_factor-solution}
+dds <- estimateSizeFactors(dds)
 #Here you must enter the first few letters appearing in every sample name, instead of "P21452"
 ggplot(as.data.frame(normalizationFactors(dds)) %>% 
           rownames_to_column() %>% pivot_longer(starts_with("P21452"),
@@ -891,8 +917,11 @@ To address both issues 3. and 4. (that are by the way not corrected when you exp
 As for dds, we save the vst object in rds format
 
 ```{r vst, exercise=TRUE, exercise.eval=TRUE, exercise.setup="dds_setup"}
+# The following commands are on the same line in my learnr, I do not know why
 vsd <- varianceStabilizingTransformation(dds, blind=TRUE)
+
 vst <- assay(vsd)
+
 vst <- vst - min(vst)
 
 saveRDS(vst, file = here("inst/tutorials/02_exploratory_data_analysis/vst.rds"))
@@ -992,7 +1021,6 @@ quiz(caption="What do we see?",
 
 Let us now visualise the components in two dimensions. We will iterate on the 3 first PCs.
 
-Edoardo: We could maybe skip this part, given that they will only have 1 variable?
 
 
 ```{r twod, exercise=TRUE, exercise.eval=FALSE, exercise.setup="prcomp"}
@@ -1038,9 +1066,9 @@ co <- c(1,3)
 pc.dat <- bind_cols(pc$x[,co],
                     as.data.frame(colData(dds)))
 ggplot(pc.dat %>% rename_with(.cols=1:2,~c("x","y")),
-         aes(x=x,y=y,col=Condition,
+         aes(x=x,y=y,col=SampleName,
              shape=Condition,
-             text=SampleID)) + 
+             text=SampleName)) + 
     geom_point(size=2) + 
     ggtitle("Principal Component Analysis",subtitle="variance stabilized counts") +
     scale_x_continuous(paste0(colnames(pc.dat)[1], " (", percent[co[1]], "%)")) + 
@@ -1049,7 +1077,7 @@ ggplot(pc.dat %>% rename_with(.cols=1:2,~c("x","y")),
 
 #### Heat map
 
-We have now observed that the principal components do explain most of the biological variance. We have now a good summarising idea of the sample properties, bu we certainly also want to have a closer understanding of the expression patterns across the samples. For that, we will generate a heat-map. Heat-maps are computationally expensive to create (as they rely on hierarchical clustering of genes and samples), so many tools in practice limit the number of genes used (the defaults vary between 500 and 1000 for DESeq2 and edgeR). I personally dislike such an approach, as the selection of a subset of gene might very well remove important signal. I am rather in favor of trying to remove genes which signal-to-noise ratio is too low to be informative. There are different ways to do that, but here we just use a naïve approach, where we will keep a gene provided it is expressed a given minimal cutoff, in all replicates of at least one condition.
+We have now observed that the principal components do explain most of the biological variance. We have now a good summarising idea of the sample properties, bu we certainly also want to have a closer understanding of the expression patterns across the samples. For that, we will generate a heat-map. Heat-maps are computationally expensive to create (as they rely on hierarchical clustering of genes and samples), so many tools in practice limit the number of genes used (the defaults vary between 500 and 1000 for DESeq2 and edgeR). I personally dislike such an approach, as the selection of a subset of genes might very well remove important signal. I am rather in favor of trying to remove genes which signal-to-noise ratio is too low to be informative. There are different ways to do that, but here we just use a naïve approach, where we will keep a gene provided it is expressed a given minimal cutoff, in all replicates of at least one condition.
 
 
 
