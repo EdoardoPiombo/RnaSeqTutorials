@@ -755,7 +755,7 @@ We will revisit this concept in the next tutorial, for now, just know that in `R
 Before actually loading the data, we set as reference level the condition that we will compare the data to.
 If you have it in your dataset, this could be the "control" condition, otherwise it should be one of the values present in the column of the metadata you are interested in.
 When a gene is identified as "Upregulated" or "Downregulated", it will be upregulated or downregulated in respect to this condition.
-Now try to load the data using DESeq2 commands
+Now try to load the data using DESeq2 commands, and then save it as an rds file
 
 ```{r dds, exercise=TRUE, exercise.eval=FALSE, exercise.setup="density"}
 suppressPackageStartupMessages(library(DESeq2))
@@ -767,6 +767,11 @@ samples$Condition <- as.factor(samples$Condition)
 samples$Condition <- relevel(samples$Condition, ref = "24h_neg5C")
 
 dds <- 
+  
+  
+saveRDS(txi, file = here("inst/tutorials/02_exploratory_data_analysis/dds.rds"))
+  
+
 ```
 
 _Note:_ `suppressPackageStartupMessages()` is very useful to silence all messages and warnings that `R` rpoduces when loading a package. However, one should be careful as these messages can point to issues such as the overloading of functionalities of packages previously loaded.
@@ -783,26 +788,19 @@ dds <- DESeqDataSetFromTximport(
   txi=txi,
   colData = samples,
   design = ~ Condition)
+
+saveRDS(dds, file = here("inst/tutorials/02_exploratory_data_analysis/dds.rds"))
 ```
 
 <!-- Edoardo:
-This is another solution whose code needs to be run.
-I cannot think of any easy solution to have the students dynamically set the control condition
+This is another code chunk that will be necessary as setup for other exercises
+
 -->
 
 ```{r dds_setup, include= FALSE, eval=TRUE}
 
-samples <- read_csv(here("inst/tutorials/02_exploratory_data_analysis/metadata.csv"),show_col_types=FALSE)
-txi <- readRDS(here("inst/tutorials/02_exploratory_data_analysis/txi.rds"))
+dds <- readRDS(here("inst/tutorials/02_exploratory_data_analysis/dds.rds"))
 
-
-samples$Condition <- as.factor(samples$Condition)
-samples$Condition <- relevel(samples$Condition, ref = "24h_neg5C")
-
-dds <- DESeqDataSetFromTximport(
-  txi = txi,
-  colData = samples,
-  design = ~ Condition)
 ```
 
 
@@ -812,7 +810,7 @@ See the warning we got? Well, up there reading the metadata, the last command re
 
 
 Before we proceed, take a few instants to familiarise with the `DESeqDataSet` object.
-Then, save the dds object like an rda file (a file format used to save this type of objects), so that we can import it again tomorrow.
+
 ```{r dds-what, exercise=TRUE, exercise.eval=TRUE, exercise.setup="dds_setup"}
 dds
 colData(dds)
@@ -822,14 +820,6 @@ head(assay(dds))
 head(assay(dds,"avgTxLength"))
 metadata(dds)
 
-deseq2_file <- "PATH_TO_PROJECT_FOLDER/dds.rda"
-#If you do not set your own deseq2 file, a default one is used:
-if (!file.exists(here(deseq2_file))) {
-  # If the file doesn't exist, use a default file
-  deseq2_file <- here('inst/tutorials/02_exploratory_data_analysis/dds.rda')
-}
-
-save(dds,file=deseq2_file)
 ```
 
 If you observe the example above, you will realise that all the function calls past the first view of the `dds` object are using `accessor` functions that are named after the `slot` of the object. This is part of the good coding practice in `R` and something you should come to expect when working with `S4-6` objects.
@@ -898,21 +888,14 @@ Now that we have seen how the library size normalisation works, and that most li
 #### Variance Stabilising Transformation
 
 To address both issues 3. and 4. (that are by the way not corrected when you export using `DESeq2` `counts(dds,normalised=TRUE)` function call), we will use another `DESeq2` function called `varianceStabilizingTransformation()`
-As for dds, we save the vst object in rda format
+As for dds, we save the vst object in rds format
 
 ```{r vst, exercise=TRUE, exercise.eval=TRUE, exercise.setup="dds_setup"}
 vsd <- varianceStabilizingTransformation(dds, blind=TRUE)
 vst <- assay(vsd)
 vst <- vst - min(vst)
 
-vst_file <- "PATH_TO_PROJECT_FOLDER/vst-aware.rda"
-#If you do not set your own vst file, a default one is used:
-if (!file.exists(here(vst_file))) {
-  # If the file doesn't exist, use a default file
-  vst_file <- here('inst/tutorials/02_exploratory_data_analysis/vst-aware.rda')
-}
-
-save(vst,file=vst_file)
+saveRDS(vst, file = here("inst/tutorials/02_exploratory_data_analysis/vst.rds"))
 ```
 
 _Note_
@@ -923,15 +906,16 @@ We can look now at what the `vst` has achieved.
 
 
 
-```{r vst-rds, include=FALSE}
-counts <- as.matrix(read.csv(here(counts_file), row.names = 1))
-load(here(deseq2_file))
-load(here(vst_file))
+```{r vst_setup, include=FALSE}
+counts <- as.matrix(read.csv(here("inst/tutorials/02_exploratory_data_analysis/counts.csv"), row.names = 1))
+dds <- readRDS(here("inst/tutorials/02_exploratory_data_analysis/dds.rds"))
 dds <- estimateSizeFactors(dds)
+vst <- readRDS(here("inst/tutorials/02_exploratory_data_analysis/vst.rds"))
+
 ```
 
 
-```{r htrscdstc, exercise=TRUE, exercise.eval=FALSE, exercise.setup="vst-rds"}
+```{r htrscdstc, exercise=TRUE, exercise.eval=FALSE, exercise.setup="vst_setup"}
 library(vsn)
 meanSdPlot(counts[rowSums(counts)>0,])
 meanSdPlot(counts(dds)[rowSums(counts(dds))>0,])
@@ -949,7 +933,7 @@ Now, we will focus on a number of visualisations to perform the EDA of the norma
 
 The first step is to actually perform the PCA before visualising it. What we are interested in is to assess how similar samples are to each other. For that, we can use the _base_ `R` `prcomp` function. That function calculates the PCA by rows, so we will need to transpose our normalised data `t()` prior to computing the PCA. There is no need to re-invent that wheel, so just run the code below :-)
 
-```{r prcomp, exercise=TRUE, exercise.eval=TRUE, exercise.setup="vst-rds"}
+```{r prcomp, exercise=TRUE, exercise.eval=TRUE, exercise.setup="vst_setup"}
 pc <- prcomp(t(vst))
 (percent <- round(summary(pc)$importance[2,]*100))
 ```
@@ -1068,16 +1052,10 @@ ggplot(pc.dat %>% rename_with(.cols=1:2,~c("x","y")),
 We have now observed that the principal components do explain most of the biological variance. We have now a good summarising idea of the sample properties, bu we certainly also want to have a closer understanding of the expression patterns across the samples. For that, we will generate a heat-map. Heat-maps are computationally expensive to create (as they rely on hierarchical clustering of genes and samples), so many tools in practice limit the number of genes used (the defaults vary between 500 and 1000 for DESeq2 and edgeR). I personally dislike such an approach, as the selection of a subset of gene might very well remove important signal. I am rather in favor of trying to remove genes which signal-to-noise ratio is too low to be informative. There are different ways to do that, but here we just use a naïve approach, where we will keep a gene provided it is expressed a given minimal cutoff, in all replicates of at least one condition.
 
 
-```{r featSel-setup, include=FALSE}
-load(here(deseq2_file))
-load(here(vst_file))
-dds <- estimateSizeFactors(dds)
-```
-
 
 To do this, you will use the `rangeFeatureSelect() function. It will return two graphics, one in a linear scale, the other in a log scale, showing the number of genes expressed at a specific cutoff in all replicates in at least one condition.
 
-```{r featSel, exercise=TRUE, exercise.eval=TRUE, exercise.setup="featSel-setup"}
+```{r featSel, exercise=TRUE, exercise.eval=TRUE, exercise.setup="vst_setup"}
 conds <- factor(paste(dds$Condition))
 #Here, you should insert the number of replicates you have per group, rather than 4, which is the number of replcates I had in the default dataset
 
