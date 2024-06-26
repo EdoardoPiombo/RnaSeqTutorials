@@ -26,6 +26,7 @@ suppressPackageStartupMessages({
   library(MASS)
   library(tidyverse)
   library(vsn)
+  library(LSD)
 })
   
 # options
@@ -35,9 +36,9 @@ tutorial_options(
   exercise.lines=10)
 
 #helper functions
-source("/mnt/picea/projects/functional-genomics-course/spring2024/data/week2/UPSCb-common/src/R/featureSelection.R")
-source("/mnt/picea/projects/functional-genomics-course/spring2024/data/week2/UPSCb-common/src/R/volcanoPlot.R")
-source("/mnt/picea/projects/functional-genomics-course/spring2024/data/week2/UPSCb-common/src/R/gopher.R")
+source(here("inst/tutorials/02_exploratory_data_analysis/www/featureSelection.R"))
+source(here("inst/tutorials/03_differential_gene_expression/www/volcanoPlot.R"))
+source(here("inst/tutorials/03_differential_gene_expression/www/gopher.R"))
 
 
 # step to reproduce
@@ -105,11 +106,12 @@ RNAseq datasets have two characteristics that make it hard to extract meaningful
 ## `DESeq()`
 
 Let's start by running `DESeq()`! Figure out how to (you need to specify the pathway to the rda file you saved yesterday to load the dds object).
+Then, save the after-run dds object as a rds file
 
-```{r deseq, exercise=TRUE, exercise.eval=TRUE,exercise.timelimit=300, exercise.setup="dds-pre"}
-load("PATH_TO_PROJECT_FOLDER/dds.rda")
+```{r deseq, exercise=TRUE, exercise.eval=TRUE,exercise.timelimit=300}
+dds <- readRDS(here("inst/tutorials/02_exploratory_data_analysis/dds.rds"))
 dds
-
+saveRDS(dds,file=here("inst/tutorials/03_differential_gene_expression/www/dds-post.rds"))
 ```
 
 ```{r deseq-hint}
@@ -117,7 +119,11 @@ dds
 ```
 
 ```{r deseq-solution}
+dds <- readRDS(here("inst/tutorials/02_exploratory_data_analysis/dds.rds"))
+
 dds <- DESeq(dds)
+#Now let's save the results
+saveRDS(dds,file=here("inst/tutorials/03_differential_gene_expression/dds-post.rds"))
 ```
 
 And that's it! In a single command, we have run the DGE! In a way, `DESeq()` is a black box. This is in my opinion, the biggest difference with the other, equally well performing, DE package `edgeR` (see [Schurch _et al._, RNA, 2016](https://doi.org/10.1261%2Frna.053959.115) for a comparison of DE tools). `DESeq2` hides the complexity away from the end-user, making automated educated decision based on the properties of the data, while `edgeR` leave all decisions to the end-user who needs to combine the different steps of the DE analysis on its own. Nonetheless, the `DESeq()` steps can be decomposed as we have seen last week with _e.g._ the `estimateSizeFactors()` step we ran, but `edgeR` remains the most versatile of the two (_caveat:_ provided you know what you are doing).
@@ -134,6 +140,15 @@ quiz(caption="`DESeq()` steps",
 ```
 
 ### Unbalanced data dimensions
+
+<!-- 
+Here I prepare a post-run dds object that they will use later
+-->
+
+```{r dds-post, eval=TRUE, include=FALSE}
+dds <- readRDS(here("inst/tutorials/03_differential_gene_expression/dds-post.rds"))
+
+```
 
 The first and second steps are about calculating the normalisation factor (for the sequencing depth) and the dispersion (of the negative binomial distribution), respectively. The third to fifth are actually addressing the first common issue of biological studies design we mentioned earlier.
 
@@ -165,7 +180,7 @@ In other words, we have done many sampling as in the naïve examples above. So, 
 In other words, we can use the data expression value of similarly expressed genes to shrink the dispersion values of those genes. Basicly, we use the expression values of similarly expressed genes as if they were additional samplings of the gene whose dispersion values we are currently shrinking. So, if we model the dispersion distribution (it will be heteroscedastic), we can then **shrink** the dispersion values we calculated towards the center value defined by the model. With that information, use the `plotDispEsts()` function to visualise and interpret that process.
 
 
-```{r disp, exercise=TRUE, exercise.eval=TRUE, exercise.setup="dds-post"}
+```{r disp, exercise=TRUE, exercise.eval=TRUE, exercise.setup= "dds-post"}
 
 ```
 
@@ -174,6 +189,7 @@ In other words, we can use the data expression value of similarly expressed gene
 ```
 
 ```{r disp-solution}
+
 plotDispEsts(dds)
 ```
 
@@ -244,7 +260,7 @@ The FDR is the less strict technique of pvalue adjustement. A number of other te
 
 #### Independent filtering
 
-A last caveat. Multiple testing corrections will be affected by the number of tests that have been conducted. That means that the higher is the number of gene that you test for differential expression, the most stringent the pvalue adjustment will have to be. Note that the pvalue adjustement does not "know" which genes are differentially expressed for real, and which ones are due to random effects, so it can occasionally happen that genuinely differentially expressed genes result as non-significant, expecially if the are lowly upregulated or downregulated.
+A last caveat. Multiple testing corrections will be affected by the number of tests that have been conducted. That means that the higher is the number of genes that you test for differential expression, the most stringent the pvalue adjustment will have to be. Note that the pvalue adjustement does not "know" which genes are differentially expressed for real, and which ones are due to random effects, so it can occasionally happen that genuinely differentially expressed genes result as non-significant, expecially if the are lowly upregulated or downregulated.
 
 Keeping this in mind, try to answer the following question.
 
@@ -275,7 +291,7 @@ The independent filtering results are stored as part of the DE results object in
 metadata(results(dds))
 ```
 
-From that output, we can observe that the independent testing has one parameter called `theta` $\theta$ and that $\theta$ represents the quantile of the expression values ranked in ascending order. `DESeq()` decides on a threshold to remove genes that are uninformative (their noise is too large for their signal to ever be significantly different) using a `lowess` ( _lo_ cally _we_ ighted _s_ catterplot _s_ moothing, a type of locally-weighted polynomial regression) regression. The results from the regression are available in the `lo.fit` entry of the `metadata(res)` list. We could visualise that regression in a ggplot visualisation.
+From that output, we can observe that the independent testing has one parameter called `theta` $\theta$ and that $\theta$ represents the quantile of the expression values ranked in ascending order. `DESeq()` decides on a threshold to remove genes that are uninformative (their noise is too large for their signal to ever be significantly different) using a `lowess` ( LOcally WEighted Scatterplot Smoothing, a type of locally-weighted polynomial regression) regression. The results from the regression are available in the `lo.fit` entry of the `metadata(res)` list. We could visualise that regression in a ggplot visualisation.
 
 ```{r indpt-filter-view, exercise=TRUE, exercise.eval=FALSE, exercise.setup="dds-post"}
 mData <- metadata(results(dds))
@@ -306,6 +322,7 @@ mData$filterTheta
 ```
 
 ```{r indpt-filter-view-solution}
+mData <- metadata(results(dds))
 ggplot(tibble(x=mData$lo.fit$x,
               y=mData$lo.fit$y),
        aes(x=x,y=y)) +
@@ -319,7 +336,7 @@ As you can observe, `DESeq()` selects a cutoff that falls short of the maxima of
 
 ```{r indpt-filter-view-quizz}
 quiz(caption="Where is the rest of the data?",
-     question("Have you noticed that the quantile of expression started at 54%? Why?",
+     question("Have you noticed that the quantile of expression does not start at 0%? Why?",
               answer("Non expressed genes are by default uninformative",correct=TRUE),
               answer("Only half of the data is used for testing, the rest was used for training."),
               answer("There was no rejection prior to that point.")
@@ -331,11 +348,12 @@ quiz(caption="Where is the rest of the data?",
 Last, we have seen how to retrieve the results of the differential expression, and these would look as follows:
 
 ```{r results, echo=FALSE, eval=TRUE}
+dds <- readRDS(here("inst/tutorials/03_differential_gene_expression/dds-post.rds"))
 head(results(dds))
 
 ```
 
-Note the second genes has only missing values (it was never expressed), while the sixth one has a missing `padj`. This is the telltale sign that this gene has been deemed uninformative.
+Note that soome genes have only missing values (they were never expressed), while others have a missing `padj`. This is the telltale sign that those genes were deemed uninformative.
 
 We will revisit these results, but prior to that we need to learn about modelling in R, as the results we just observed were tests conducted on the model $expression = f(Condition)$.
 
@@ -408,6 +426,7 @@ fit <- lm(data=Animals,brain ~ body)
 ```
 
 ```{r lm-solution}
+fit <- lm(data=Animals,brain ~ body)
 # the sum of squared residuals
 sum(resid(fit)^2)
 # same as a function
@@ -437,6 +456,8 @@ fit <- lm(data=Animals,log10(brain) ~ log10(body))
 ```
 
 ```{r model-log-solution}
+fit <- lm(data=Animals,log10(brain) ~ poly(log10(body),2))
+
 ggplot(Animals,aes(x=log10(body),y=log10(brain))) + 
   geom_point() + 
   geom_smooth(method=lm,se=FALSE)
@@ -760,36 +781,28 @@ quiz(caption="Contrast by default",
 
 When you have moany contracts, the result() function will, by default, only give the results of the last one. To select a different contrast, we can use the `name=` argument to the `results()` function call. To see the names of all the possible contrasts, you can use the function resultsNames(). Give it a try below.
 
-```{r treatment-T03, exercise=TRUE, exercise.eval=TRUE, exercise.setup="dds-post"}
+
+```{r contrast, exercise=TRUE, exercise.eval=TRUE, exercise.setup="dds-post"}
 
 ```
 
-```{r treatment-T03-hint}
+```{r contrast-hint}
 results(dds,name=...)
 ```
 
-```{r treatment-T03-solution}
-resultsNames()
+```{r contrast-solution}
+resultsNames(dds)
 some_results <- results(dds,name="A_CONTRAST_YOU_CHOOSE")
 ```
 
 
 
-Excellent. We could now export the results to a file for future reference / use. You would do this as follows:
-
-```{r write, echo=TRUE, eval=FALSE}
-# This is just an example, NO need to run it :-)
-suppressPackageStartupMessages({
-  library(here)
-  library(readr)
-})
-dir.create(here("analysis"))
-write_tsv(some_results,file=here("analysis/some_results.tsv"))
-```
 
 Now, wait! How do we know how many genes are differentially expressed? Good question, give a try at `summary()`.
 
-```{r summary, exercise=TRUE, exercise.eval=TRUE, exercise.setup="G03_vs_G02_at_T03"}
+```{r summary, exercise=TRUE, exercise.eval=FALSE, exercise.setup="dds-post"}
+resultsNames(dds)
+some_results <- results(dds,name="A_CONTRAST_YOU_CHOOSE")
 
 ```
 
@@ -803,14 +816,16 @@ summary(some_results)
 
 Wait again! How do we know what cutoff(s) to use? Good question, look at [Table 2](https://rnajournal.cshlp.org/content/22/6/839/T2.expansion.html) from Schurch _et al._, RNA, 2016. With less than 6 replicates per condition, the FDR is controlled for log2 fold-changes $>=0.5$. Try to find out how this out.
 
-```{r cutoffs, exercise=TRUE, exercise.eval=TRUE}
-
+```{r cutoffs, exercise=TRUE, exercise.eval=FALSE, exercise.setup="dds-post"}
+resultsNames(dds)
+#Select the condition you prefer instead of the one I wrote here
+some_results <- results(dds,name="Condition_6h_5C_vs_24h_neg5C")
 some_results %>% 
 
 ```
 
 
-```{r cutoffs}
+```{r cutoffs-hint}
 ?is.na
 ?filter
 ?abs
@@ -867,7 +882,10 @@ What? You thought you were done with quality plots after the day of yesterday?
 
 One of the first (and most important) assessment plots to do is a so-called volcano plot.
 
-```{r volcano-plot, echo=TRUE, eval=TRUE}
+```{r volcano-plot, exercise=TRUE, exercise.eval=TRUE, exercise.setup = "dds-post"}
+resultsNames(dds)
+#Select the condition you prefer instead of the one I wrote here
+some_results <- results(dds,name="Condition_6h_5C_vs_24h_neg5C")
 volcanoPlot(some_results)
 ```
 
@@ -881,12 +899,16 @@ Note that volcanoPlot() is a function we wrote. To see  exactly what it does and
 In the Biological QA, we have used the `gplots` package `heatmap.2` function. That function follows the principles of base `R` and while being performant, is not as easily customisable as implementations that are inspired from the `tidyverse`. Here we will use the `ComplexHeatmap` package `Heatmap()` and `HeatmapAnnotation()` functions to visualise the expression of the DE genes in the contrast we just ran. This is also a good sanity check as we should obtain a very blue and red chequered heat-map.
 
 <!-- Edoardo: I tried to rewrite the code below using tidyverse when possible -->
-```{r heatmap, echo=TRUE, eval=TRUE}
+```{r heatmap, exercise=TRUE, exercise.eval=TRUE, exercise.setup= "volcano-plot"}
 suppressPackageStartupMessages(library(ComplexHeatmap))
 
-row_sel <-some_results %>%  filter(!is.na(padj)) %>% 
+
+row_sel <-some_results %>%
+  as.data.frame() %>%
+  filter(!is.na(padj)) %>% 
   filter(padj <= 0.01) %>%
-  filter(abs(log2FoldChange) >= 0.5) 
+  filter(abs(log2FoldChange) >= 0.5)
+
 
 col_sel <- dds$Condition
 
@@ -894,21 +916,21 @@ vsd <- varianceStabilizingTransformation(dds,blind=FALSE)
 vst <- assay(vsd)
 vst <- vst - min(vst)
 
-Heatmap(t(scale(t(vst[row_sel,1:ncol(dds)]))),
+Heatmap(t(scale(t(vst[rownames(row_sel),1:ncol(dds)]))),
         clustering_distance_columns="pearson",
         clustering_method_columns="ward.D2",
         clustering_distance_rows="pearson",
         clustering_method_rows="ward.D2",
         show_row_dend=FALSE,
-        show_row_names=FALSE) %v% 
-  HeatmapAnnotation(
-    treatment=dds$treatment[col_sel])
+        show_row_names=FALSE)
 ```
 
 A point of caution. Some low (or very low) expressed genes can be called differentially expressed. Hence it is good pratice to plot the distribution of the average counts of the DE genes. Use the code block below to take a look (suggestion: `ggplot()`, `geom_boxplot()`, as well as `scale_y_log10()` as the counts are linear...)
 
-```{r DE-counts, exercise=TRUE, exercise.eval=TRUE}
-row_sel <-some_results %>%  filter(!is.na(padj)) %>% 
+```{r DE-counts, exercise=TRUE, exercise.eval=TRUE, exercise_setup= "heatmap"}
+row_sel <-some_results %>%
+  as.data.frame() %>%
+  filter(!is.na(padj)) %>% 
   filter(padj <= 0.01) %>%
   filter(abs(log2FoldChange) >= 0.5) 
 
@@ -952,29 +974,29 @@ For that we need to subset the dds object and adjust the design. Subsetting can 
 ```
 
 ```{r subset-hint-1}
-dds_T04 <- dds[,SELECTION]
-design(dds_T04) <- NEW_DESIGN
+#dds_T04 <- dds[,SELECTION]
+#design(dds_T04) <- NEW_DESIGN
 ```
 
 ```{r subset-hint-2}
-dds$time
-dds_T04 <- dds[,SELECTION]
-design(dds_T04) <- NEW_DESIGN
+#dds$time
+#dds_T04 <- dds[,SELECTION]
+#design(dds_T04) <- NEW_DESIGN
 ```
 
 ```{r subset-solution}
-dds_T04 <- dds[,dds$time=="T04"]
-design(dds_T04) <- ~ treatment
+#dds_T04 <- dds[,dds$time=="T04"]
+#design(dds_T04) <- ~ treatment
 ```
 
 ```{r dds_T04, include=FALSE, eval=TRUE}
-dds_T04 <- readRDS(file=here("tutorials/03_differential_gene_expression/www/dds_T04-post.rds"))
+#dds_T04 <- readRDS(file=here("tutorials/03_differential_gene_expression/www/dds_T04-post.rds"))
 ```
 
 Here are a few more things, that need to be adjusted (or almost always, at present it would not be an issue). Briefly, the variables in the model are factors and by subsampling, we might remove all entries from a given level; _i.e._ in our case, the `time` factor now only contains T04 and no longer T03. However, `dds$time` as a factor will still list both. If that variable was still present in the model, containing a level not present any longer, `DESeq` would complain that the `matrix is not full-rank`. In that case, you would need to reset the factor levels like so:
 
 ```{r levels, eval=FALSE, echo=TRUE}
-dds_T04$time <- droplevels(dds_T04$time)
+#dds_T04$time <- droplevels(dds_T04$time)
 ```
 
 Now that we have our subset, use the following block to re-run `DESeq()` on it. 
@@ -983,20 +1005,20 @@ Now that we have our subset, use the following block to re-run `DESeq()` on it.
 ```
 
 ```{r subset-de-hint}
-DESeq()
-resultsNames()
-summary()
+#DESeq()
+#resultsNames()
+#summary()
 ```
 
 ```{r subset-de-solution}
-dds_T04 <- DESeq(dds_T04)
-resultsNames(dds_T04)
-G03_vs_G02_at_T04_simple <- results(dds_T04)
-summary(G03_vs_G02_at_T04_simple,alpha=0.01)
+#dds_T04 <- DESeq(dds_T04)
+#resultsNames(dds_T04)
+#G03_vs_G02_at_T04_simple <- results(dds_T04)
+#summary(G03_vs_G02_at_T04_simple,alpha=0.01)
 ```
 
 ```{r G03_vs_G02_at_T04_simple, include=FALSE, eval=TRUE}
-G03_vs_G02_at_T04_simple <- readRDS(file=here("tutorials/03_differential_gene_expression/www/G03_vs_G02_at_T04_simple.rds"))
+#G03_vs_G02_at_T04_simple <- readRDS(file=here("tutorials/03_differential_gene_expression/www/G03_vs_G02_at_T04_simple.rds"))
 ```
 
 ```{r subset-de-quiz}
@@ -1014,23 +1036,23 @@ quiz(caption="How does this compare?",
 
 Finally, we can visualise that overlap. Here again, just demonstrating the use of an `R` package, inspired by `tidyverse` to create a Venn Diagram (simply run it). 
 ```{r venn-setup}
-G03_vs_G02_at_T04 <- readRDS(file=here("tutorials/03_differential_gene_expression/www/G03_vs_G02_at_T04.rds"))
-G03_vs_G02_at_T04_simple <- readRDS(file=here("tutorials/03_differential_gene_expression/www/G03_vs_G02_at_T04_simple.rds"))
+#G03_vs_G02_at_T04 <- readRDS(file=here("tutorials/03_differential_gene_expression/www/G03_vs_G02_at_T04.rds"))
+#G03_vs_G02_at_T04_simple <- readRDS(file=here("tutorials/03_differential_gene_expression/www/G03_vs_G02_at_T04_simple.rds"))
 ```
 
 ```{r venn, exercise=TRUE, exercise.eval=FALSE, exercise.lines=12}
-suppressPackageStartupMessages(library(ggvenn))
+#suppressPackageStartupMessages(library(ggvenn))
 
-row_sel <- !is.na(G03_vs_G02_at_T04$padj) & 
-  G03_vs_G02_at_T04$padj <= 0.01 & 
-  abs(G03_vs_G02_at_T04$log2FoldChange) >= 0.5
+#row_sel <- !is.na(G03_vs_G02_at_T04$padj) & 
+#  G03_vs_G02_at_T04$padj <= 0.01 & 
+#  abs(G03_vs_G02_at_T04$log2FoldChange) >= 0.5
 
-row_sel_simple <- !is.na(G03_vs_G02_at_T04_simple$padj) & 
-  G03_vs_G02_at_T04_simple$padj <= 0.01 & 
-  abs(G03_vs_G02_at_T04_simple$log2FoldChange) >= 0.5
+#row_sel_simple <- !is.na(G03_vs_G02_at_T04_simple$padj) & 
+#  G03_vs_G02_at_T04_simple$padj <= 0.01 & 
+#  abs(G03_vs_G02_at_T04_simple$log2FoldChange) >= 0.5
 
-ggvenn(list(simple=rownames(G03_vs_G02_at_T04_simple)[row_sel_simple],
-            complex=rownames(G03_vs_G02_at_T04)[row_sel]))
+#ggvenn(list(simple=rownames(G03_vs_G02_at_T04_simple)[row_sel_simple],
+#            complex=rownames(G03_vs_G02_at_T04)[row_sel]))
 
 ```
 
@@ -1046,10 +1068,14 @@ Now that we have a set of candidate genes, it is time to look into what their fu
 
 We will start by exporting the results for the simple and complex model, so we can do the downstream analysis tomorrow!
 
-```{r export, echo=TRUE, eval=FALSE}
+```{r export, exercise=TRUE, exercise.eval=FALSE, exercise.setup= "heatmap"}
 
-write_tsv(as.data.frame(some_results) %>% rownames_to_column("geneID"),
-          file=here("PATH_TO_PROJECT_FOLDER/results_DE.tsv"))
+some_results %>% 
+  as.data.frame() %>% 
+  rownames_to_column("geneID") %>% 
+  #Please do not change the name of the saved file, as future code will use it
+  write_tsv(file=here("inst/tutorials/03_differential_gene_expression/some_results.tsv"))
+
 ```
 
 ## Session Info
