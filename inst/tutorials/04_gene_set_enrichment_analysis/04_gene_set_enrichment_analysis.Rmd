@@ -378,7 +378,7 @@ geneID2GO <- readMappings(here("inst/tutorials/04_gene_set_enrichment_analysis/f
 
 ExpressedGenes <- population %>% dplyr::select(geneID) %>% pull()
 geneID2GO <- geneID2GO[names(geneID2GO) %in% ExpressedGenes]
-saveRDS(geneID2GO,file=here("tutorials/04_gene_set_enrichment_analysis/geneID2GO.rds"))
+saveRDS(geneID2GO,file=here("inst/tutorials/04_gene_set_enrichment_analysis/geneID2GO.rds"))
 
 ```
 
@@ -387,7 +387,7 @@ DEres <- read_tsv(file=here("inst/tutorials/03_differential_gene_expression/some
 population <- DEres %>% filter(!is.na(padj)) %>% dplyr::select(geneID,padj,log2FoldChange)
 Upregulated <- population %>% filter(padj < 0.01) %>% filter(log2FoldChange > 0.5)
 Downregulated <- population %>% filter(padj < 0.01) %>% filter(log2FoldChange < 0.5)
-geneID2GO <- readRDS(here("tutorials/04_gene_set_enrichment_analysis/geneID2GO.rds"))
+geneID2GO <- readRDS(here("inst/tutorials/04_gene_set_enrichment_analysis/geneID2GO.rds"))
 
 ```
 
@@ -397,7 +397,7 @@ We will test for BPs, which are the GO terms most commonly used, but you can eas
 Similarly, in the presented code we will run the test for the Upregulated genes, but you should run it also for the downregulated ones.
 
 ```{r GOdata, exercise=TRUE, exercise.setup="geneID2GO_setup", exercise.eval=TRUE}
-geneList <- factor(as.integer(names(geneID2GO) %in% Upregulated))
+geneList <- factor(as.integer(names(geneID2GO) %in% Upregulated$geneID))
 names(geneList) <- names(geneID2GO)
 
 GOdata <- new("topGOdata", 
@@ -418,7 +418,7 @@ allGO <- usedGO(GOdata)
 
 Now that the object is set up (it has retrieved the annotation and linked our gene set), we can define the testing. `topGO` supports the `Parent Child` test, but again, it took a while to find that information.
 
-```{r test, exercise=TRUE, exercise.eval=FALSE, exercise.timelimit=300}
+```{r test, exercise=TRUE, exercise.eval=TRUE, exercise.timelimit=300, exercise.setup="GOdata"}
 resultPC <- runTest(GOdata, 
                     algorithm = "parentchild",
                     statistic = "fisher")
@@ -430,7 +430,7 @@ Observe the `topGO` package does not do any multiple testing correction by defau
 The function "GenTable" of the TopGO package allows us to export the enriched GOs in a clear dataframe, where we can adjust the pvalue and add the results as an additional column.
 The topnodes argument indicate the number of GOs to be included in the table, in this case we get all of them, but then filter out those that have adjusted pvalues higher than 0.01.
 
-```{r mtest, exercise=TRUE, exercise.eval=FALSE}
+```{r mtest, exercise=TRUE, exercise.eval=TRUE,exercise.setup="test" }
 FDR <- p.adjust(score(resultPC),method="BH")
 allResSig <- GenTable(GOdata, 
                    parentchildFisher = resultPC, 
@@ -438,7 +438,7 @@ allResSig <- GenTable(GOdata,
                    topNodes = length(allGO)) %>% 
   mutate_at(c('parentchildFisher'), as.numeric) %>%
   mutate(padj = round(p.adjust(parentchildFisher, method = "BH"), digits = 4)) %>%
-  arrange(padj) %>% filter(padj < 0.01)
+  arrange(padj) %>% filter(padj < 0.05)
 ```
 
 #### Results
@@ -446,36 +446,23 @@ allResSig <- GenTable(GOdata,
 That's it! We have performed our enrichment! Let's look at the results:
 
 
-```{r results, exercise=TRUE, exercise.eval=FALSE}
-score(resultPC)
-geneData(resultPC)
-alpha=0.01
-summary(FDR <= alpha)
+```{r results, exercise=TRUE, exercise.eval=FALSE, exercise.setup="mtest"}
+dim(allResSig)
+allResSig
 ```
 
 ### Visualisation
 It is always interesting to visualise results both for assessing and explaining them
 
----
 
-#### Assessment
-
-```{r visualisation, exercise=TRUE, exercise.eval=FALSE}
-
-hist(score(resultPC),100)
-
-```
-
----
 #### Visualizing the more significant GO terms
 A quick analysis to do is to assign to each enriched GO term a score equal to the -log10() of its adjusted pvalue, so the closest the padj is to zero the higher the score will be, and then to visualize which terms have the highest score. They will be the ones with the highest over representation in the gene set of interest, compared to the whole population.
 Can you add to the dataset a column containing these scores?
 
 
 
-```{r resScore, exercise=TRUE, exercise.eval=FALSE}
-allResSig <- allRes %>% filter(padj < 0.05) %>% 
-  mutate(scores = setNames(-log10(weightFisher), GO.ID))
+```{r resScore, exercise=TRUE, exercise.eval=FALSE, exercise.setup="mtest"}
+allResSig
 
 ```
 
@@ -492,14 +479,16 @@ allResSig <- allResSig %>% mutate(scores = -log10(padj))
 
 Then, we can visualize the terms according to their score using a wordcloud, a type of graph where the GO terms with the higher scores will appear bigger:
 
-```{r wordcloud, exercise=TRUE, exercise.eval=FALSE}
+```{r wordcloud, exercise=TRUE, exercise.eval=TRUE, exercise.setup="mtest"}
+allResSig <- allResSig %>% mutate(scores = -log10(padj))
+library(wordcloud)
 wordcloud(words = allResSig$Term, 
           freq = allResSig$score, 
           min.freq = 0,           
           max.words = 200, 
           random.order = FALSE, 
           rot.per = 0, 
-          scale = c(4,.5),  
+          scale = c(2, 1),  
           colors = brewer.pal(8, "Dark2"))
   
 ```
@@ -508,13 +497,11 @@ wordcloud(words = allResSig$Term,
 
 #### Exploration
 
-```{r exploration, exercise=TRUE, exercise.eval=FALSE}
+```{r exploration, exercise=TRUE, exercise.eval=FALSE, exercise.setup="mtest"}
 
 suppressPackageStartupMessages(showSigOfNodes(GOdata, score(resultPC), firstSigNodes = 5, useInfo = 'def'))
 
 suppressPackageStartupMessages(showSigOfNodes(GOdata, FDR, firstSigNodes = 5, useInfo = 'def'))
-
-printGraph(GOdata, resultPC, firstSigNodes = 5, fn.prefix = "tGO", useInfo = "def", pdfSW=TRUE)
 
 ```
 
@@ -522,16 +509,15 @@ printGraph(GOdata, resultPC, firstSigNodes = 5, fn.prefix = "tGO", useInfo = "de
 
 There are many other alternatives to visualise data, so let us export our results
 
-```{r export, exercise=TRUE, exercise.eval=FALSE}
-alpha=0.01
+```{r export, exercise=TRUE, exercise.eval=FALSE, exercise.setup="mtest"}
+alpha=0.05
 enr <- tibble(ID=names(FDR)[FDR <= alpha],
        FDR=FDR[FDR<=alpha])
+
+
+write_tsv(enr,file=here("inst/tutorials/04_gene_set_enrichment_analysis/results_GO-enrichment.tsv"))
 ```
 
-```{r write, eval=FALSE, echo=TRUE}
-dir.create(here("analysis/GO"),showWarnings=FALSE)
-write_tsv(enr,file=here("analysis/GO/G03_vs_G02_at_T04_simple-model_GO-enrichment.tsv"))
-```
 
 Now that we have exported the data, we can use them in other resources, one that I like is [REVIGO](http://revigo.irb.hr). Copypaste there the names of the enriched GOs and their adjusted pvalue, in two columns, and look at the results.
 
