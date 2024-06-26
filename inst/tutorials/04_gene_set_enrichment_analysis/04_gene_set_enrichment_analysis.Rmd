@@ -532,76 +532,9 @@ Revigo returns a plot in which GO terms are represented by circles:
 knitr::include_graphics("images/Revigo.png")
 ````
 
-
-
-<!-- Edoardo: I commented out the hands on as they will not have data from multiple models
-
-## Hands-on
-
-Reproduce the analysis above, but run it on the full model data ("tutorials/04_gene_set_enrichment_analysis/www/analysis/G03_vs_G02_at_T04_full-model_DE-results.tsv").
-
-1. We gather the data
-
-```{r full-model-data, exercise=TRUE, exercise.eval=FALSE, exercise.lines=30, exercise.timelimit=600}
-
-```
-
-```{r full-model-data-solution}
-# data
-G03_vs_G02_at_T04 <- read_tsv(file=here("tutorials/04_gene_set_enrichment_analysis/www/analysis/G03_vs_G02_at_T04_full-model_DE-results.tsv"),show_col_types=FALSE)
-
-# population
-fpopulation <- G03_vs_G02_at_T04 %>% filter(!is.na(padj)) %>% dplyr::select(geneID,padj,log2FoldChange)
-fpopulation.score <- fpopulation$padj
-names(fpopulation.score) <- sub("\\.\\d+","",fpopulation$geneID)
-fpopulation.score[abs(fpopulation$log2FoldChange) <= lfc] <- 1
-
-# topGO data
-fGOdata <- new("topGOdata",
-              description = "G03 vs. G02 at T04 (full model)",
-              ontology = "BP",
-              allGenes = fpopulation.score,
-              geneSel = getDEgenes,
-              nodeSize = 5,
-              annot = annFUN.org,
-              mapping="org.Hs.eg.db",
-              ID="ensembl")
-
-```
-
-2. We run the test
-
-```{r full-model, exercise=TRUE, exercise.eval=FALSE, exercise.lines=30, exercise.timelimit=600}
-
-```
-
-```{r full-model-solution}
-# test statistics
-test.stat <- new("parentChild",testStatistic = GOFisherTest, name = "Parent Child")
-
-# Do the test
-resultPC <- getSigGroups(fGOdata, test.stat)
-
-# Adjust for multiple testing
-FDR <- p.adjust(score(resultPC),method="BH")
-```
-
-3. We visualise
-
-```{r full-model-view, exercise=TRUE, exercise.eval=FALSE}
-# Plot
-suppressPackageStartupMessages(showSigOfNodes(GOdata, FDR, firstSigNodes = 5, useInfo = 'def'))
-```
-
-## Methods comparison
-
-Are the `parent-child` results significantly different than the default of *topGO*, _i.e._ `weight01`? What about the `classic` and `elim` methods?
-
--->
-
 #### Comparing algorhitms
 
-So how did I know about these methods? Mostly by searching on Bioconductor and reading the package [vignette](https://bioconductor.org/packages/release/bioc/html/topGO.html). The package has two functions that can be used to retrieve a list of existing enrichment algorithms and tests.
+So how did I know about these methods? Mostly by searching on Bioconductor and reading the package [vignette](https://bioconductor.org/packages/release/bioc/html/topGO.html). TopGO has two functions that can be used to retrieve a list of existing enrichment algorithms and tests.
 
 ```{r algo, exercise=TRUE, exercise.eval=FALSE}
 whichAlgorithms()
@@ -611,7 +544,7 @@ whichTests()
 ### Many algorithms
 Now that we know about the possibilities, and after taking a look at the vignette's **Table 1**, we can select a number of algorithms to run and the `fisher` test (as it is the only test supported by all algorithms). **For the sake of the time, run just one, or be ready to wait five minutes...**
 
-```{r tests, exercise=TRUE, exercise.eval=FALSE, exercise.timelimit=300}
+```{r tests, exercise=TRUE, exercise.eval=FALSE, exercise.timelimit=300, exercise.setup="mtest"}
 classicFisher <- runTest(GOdata,algorithm="classic",statistic="fisher")
 elimFisher <- runTest(GOdata,algorithm="elim",statistic="fisher")
 parentchildFisher <- runTest(GOdata,algorithm="parentchild",statistic="fisher")
@@ -620,19 +553,19 @@ weight01Fisher <- runTest(GOdata,algorithm="weight01",statistic="fisher")
 
 We will again use`GenTable`. That function is actually very versatile and could be used to compare different sets of results, _e.g._:
 
-```{r comparison, exercise=TRUE, exercise.eval=FALSE, exercise.lines=10}
+```{r comparison, exercise=TRUE, exercise.eval=FALSE, exercise.lines=10, exercise.setup="tests"}
 
 comp <- as_tibble(GenTable(GOdata,classicFisher=classicFisher,
          elimFisher=elimFisher,
          parentchildFisher=parentchildFisher,
          weight01Fisher=weight01Fisher,
          orderBy="parentchildFisher",
-         topNodes=sum(p.adjust(score(parentchildFisher),method="BH") <= 0.01)))
+         topNodes=sum(p.adjust(score(parentchildFisher),method="BH") <= 0.05)))
 ```
 
 Now that we built a comparison of three methods against the `parentchild` reference, let us visualise the results of the overlap. This is usually done using Venn diagrams, but these quickly turn cumbersome to interpret and are hard to draw for more than five sets. Instead, a more generic visualisation are the `upset` plots from the library [UpSetR](https://cran.r-project.org/web/packages/UpSetR/index.html). The `upset` function expects a list of numerical vectors, where an overlap is represented by the same value being present across multiple lists - see the [Basic Usage](https://cran.r-project.org/web/packages/UpSetR/vignettes/basic.usage.html) vignette. We will use `dplyr` to extract the data from the results of `GenTable` and turn it into a boolean matrix.
 
-```{r upset, exercise=TRUE, exercise.eval=FALSE, exercise.lines=12}
+```{r upset, exercise=TRUE, exercise.eval=FALSE, exercise.lines=12, exercise.setup="comparison"}
 library(UpSetR)
 dat <- comp %>% dplyr::select(contains("Fisher") & -starts_with("Rank")) %>% 
   mutate_if(is.character,parse_double) %>% 
@@ -646,9 +579,11 @@ upset(fromList(apply(dat,2,which)))
 
 ```
 
-It seems that the `classic` and `parentchild` are very similar, while the `elim` and `weight01` are much more conservative. The vignette from the `topGO` package has a section arguing (mostly) against multiple testing correction. Redo the previous analysis, without the multiple testing correction.
+Which tests were similar between each other? Which ones were more conservative?
 
-```{r comp2, exercise=TRUE, exercise.eval=FALSE, exercise.lines=15}
+The vignette from the `topGO` package has a section arguing (mostly) against multiple testing correction. Redo the previous analysis, without the multiple testing correction.
+
+```{r comp2, exercise=TRUE, exercise.eval=FALSE, exercise.lines=15, exercise.setup="tests"}
 
 ```
 
@@ -668,7 +603,7 @@ upset(fromList(apply(dat,2,which)))
 
 ```
 
-This is not much different as an outcome. Both the `elim` and `weight01` function are more conservative. Not knowing which method to choose, one would often resort to doing some sort of benchmarking in addition to literature screening.
+Did the results change? Are the most conservative tests the same?
 
 ### A few words about other tools
 
