@@ -1,6 +1,6 @@
 ---
 title: "Differential Gene Expression (DGE)"
-author: "Nicolas Delhomme for Bn Bioinformatics"
+author: "Nicolas Delhomme and Edoardo Piombo"
 tutorial:
   id: "org.bnbio.tutorials.03_differential_gene_expression"
   version: 0.6
@@ -619,106 +619,10 @@ results(dds)
 
 `R` has by default calculated one contrasts and has returned its result, from the call to `results()`. If you have had more than two values in the Condition column of your metadata, more contrasts would have been calculated, and the result of the last one would have been returned by default.
 
-Before looking into the results (yes, we will eventually!), let us figure out what a "contrast" is and how it relates to the model we provided as a `formula`.
-
-### Contrast, model matrix, etc.
-
-To look into the semantic of DE testing, and understand its meaning (which is non trivial), there is a nice application developed by Charlotte Soneson _et al._, in an `R` package called [ExploreModelMatrix](https://bioconductor.org/packages/release/bioc/html/ExploreModelMatrix.html). The package can be deployed as a `shiny` app or run standalone. I have done the former [there](http://terra.upsc.se/ExploreModelMatrix/).
-
-#### ExploreModelMatrix
-
-Once you have opened the app, load the `samples_table.tsv` file.
-
-Then in the `Design formula` text box enter the following formulas and look at the results:
-
-1. `~0 + Condition`
-2. `~Condition` 
-
-Below are some example plots, showing the different contributions of the variables (as arrows) for the different contrasts. The plots represent the expression values of a single gene (as black dots) in different samples, separated by sample groups. These are meant as a visual help to what is reported in the `ExploreModelMatrix` [app](http://terra.upsc.se/ExploreModelMatrix/). Note the image are from a different studies where the variables are treatment and genotype.
-
----
-~$0 + treatment$
-
-![`~0 + treatment`](images/design_0_treatment.png){width=80%}
-
-Here, we force the linear model to go through the origin (0), so there is no condition used as a reference. Rather both treatments are compared to the origin. To compare treatment and control, we would subtract `treatmenttreated` from `treatmentcontrol`. 
-
-**Note:** remember our data have been log-transformed so the ratio $treatmenttreated / treatmentcontrol$ is $treatmenttreated - treatmentcontrol$ as a log-ratio. 
-
----
-~$treatment$
-
-![`~treatment`](images/design_treatment.png){width=80%}
-
-Here, we drop the origin (0) from the formula, so one condition will be used as the reference. The contrasts returned by `R` are directly compared to that reference.
-
-```{r origin-quiz}
-quiz(caption="How do the two formula compare?",
-     question("What is the treatmenttreated in the second formula equivalent to in the first?",
-              answer("treatmenttreated"),
-              answer("treatmenttreated - treatmentcontrol",correct=TRUE),
-              answer("treatmenttreated / treatmentcontrol"),
-              answer("They are not comparable")))
-```
-
-**Note:** The default reference is devised by the alphabetic order of the variable, hence the reason why `control` is the default in this image and the treatment `G02` in our data. However, in our dataset we selected our reference condition yesterday, when we ran:
-
-```{choose_reference, eval=FALSE, echo=TRUE}
-samples$CONDITION_OF_INTEREST <- relevel(samples$CHANGEME, ref = "YOUR_CONTROL_CONDITION")
-```
-
-<!--Edoardo:
-Is this image correct? The treatment/genotype value is still present.
-In general, I do not know if it is useful to spend so much time on the interaction of two variables, when they have only one.
--->
-
----
-~$treatment + genotype$
-
-![`~treatment+genotype`](images/design_treatment_time.png){width=80%}
-
-Here we look at both variables, as if they were **independent**. This is a design sometimes called a `block` design. Indeed, as the default contrast returned by `R` is the last one, _i.e._ the one for the second variable, it corresponds to having effectively blocked the effect of the first one.
-
-```{r block-quiz}
-quiz(caption="Blocking...",
-     question("What could this be useful for?",
-              answer("No idea"),
-              answer("Removing a variable effect of a variable absent from the formula"),
-              answer("Removing a batch effect",correct=TRUE)))
-```
-
----
-~$treatment * genotype$
-
-![`~treatment * genotype`](images/design_treatment_by_time.png){width=80%}
-
-Here, and that is probably the most common case, we **cannot** assume that both variables are independent, so we factored in an interaction term. From the image it is obvious that the effects of the treatment in the genotype A (blue) and the effect of the genotype B among control samples (red) do not explain the expression values observed in the treated genotype B condition. By summing the contribution of red and blue, we can derive the effect of the treatment in genotype B (green). 
-
-```{r crossed-quiz}
-quiz(caption="Comparing treatment in genotypes",
-     question("Based on the image above, the treatment in genotype B is",
-              answer("twice as efficient as in genotype A",correct=TRUE),
-              answer("having a similar effect as in genotype A"),
-              answer("is half as effective as in treatment A")))
-```
-
----
-
-A final note on contrasts. They are (to me at least) headache generators. And that's where the `ExploreModelMatrix`, as well as the vignettes of the `DESeq2` and `edgeR` packages are really useful. I also always cross-validate my results, by looking at heatmaps and validating the log ratio by taking a few example genes and doing the maths.
+Contrasts are (to me at least) headache generators, but the vignettes of the `DESeq2` and `edgeR` packages are really useful to understand them. Moreover, I also always cross-validate my results, by looking at heatmaps and validating the log ratio by taking a few example genes and doing the maths (or at least checking manually that one group of samples has many more reads mapping to those genes).
 
 
-<!--Edoardo: I did not really get the following paragraphth -->
-
-
-There are different ways of writing contrasts; what I have described above is the approach used by `DESeq2`. `edgeR` use model matrices and tend to rely on using no reference; _e.g._ instead of using `~treatment * time`, one could create a single variable `condition` that would concatenate treatment and time in a single factor (_i.e._ in our cases T03_G02, T03_G03, T04_G02 and T04_G03) and use a simpler model: `~0+condition`. Then one can write any contrast easily in math terms, _e.g._ looking at the example above (effect of the treatment in genotype B) would be written as $T04\_G03 - (T03\_G03 + T04\_G02)$
-
-~$0 + condition$
-
-![~0+condition](images/design_0_condition.png){width=80%}
-
-### Applying contrasts
-
-Now that we know more about contrasts, we can extract them accordingly. The studies design (or rather the subset we are looking at) is about the induction of regulatory T-cells upon administration of TGF-$\beta$, recorded at six and 24 hours. Control samples (mock induction) are available for the same time points. Our design is `time * treatment` 
+Now that we know about contrasts, we will learn to extract them accordingly.
 
 ---
 
@@ -732,55 +636,30 @@ Use the following code block to find what the baseline is (remember that `R` sor
 
 ```{r baseline-hint}
 ?resultsNames
-dds$treatment
-dds$time
+dds$Condition
 ```
 
 ```{r baseline-solution}
 resultsNames(dds)
-levels(dds$treatment)
-levels(dds$time)
+levels(dds$Condition)
 ```
 
-**Note:** If the default ordering is not what you want, you can use _e.g._ `dds$treatment <- relevel(dds$treatment,"G03")` to make `GO3` the reference.
+**Note:** If the default ordering is not what you want, and you have several contrasts, you can use _e.g._ `dds$Condition <- relevel(dds$Condition,"A_New_Condition")` to make `A_New_Condition` the reference.
 
 ---
 
-#### Default contrast
+#### Choosing contrasts
 
-Now that we know which levels are the default level, how do we know which contrast is returned by default when we use the `results()` function? Use the code block below to figure it out from the `results()` and `resultsNames()` functions.
+If you have more contrasts, the default one is always the last one returned by the function resultsNames()
 
 ```{r default-contrast, exercise=TRUE, exercise.eval=TRUE, exercise.setup="dds-post"}
-
+resultsNames(dds)
 ```
 
-```{r default-contrast-quiz}
-quiz(caption="Contrast by default",
-     question("Which contrast is returned by default?",
-              answer("Intercept"),
-              answer("time_T04_vs_T03"),
-              answer("treatment_G03_vs_G02"),
-              answer("timeT04.treatmentG03",correct=TRUE),
-              answer("The last one listed by resultsNames(), always",correct=TRUE),
-              try_again=TRUE),
-     question("What does that contrast represent?",
-              answer("The average expression in G03 at T04 compared to 0",message="This would imply a model of the form `0 + ...`"),
-              answer("The average expression in G03 at T04 compared to the baseline",message="Take a look at the `~treatment * time` example in the previous chapter..."),
-              answer("The average contribution to the expression level that is specifically attributable to G03 at T04",correct=TRUE),
-              try_again=TRUE),
-     question("How do we extract a similar information at `T03`?",
-              answer("By looking at the `time_T04_vs_T03` contrast",message="That would look at the time effect in the control samples."),
-              answer("By looking at the `treatment_G03_vs_G02` contrast",correct=TRUE),
-              try_again=TRUE, post_message="Excellent, give it a try below!")
-     )
-```
 
-----
 
-#### Other contrasts from `resultsNames()`
-
-When you have moany contracts, the result() function will, by default, only give the results of the last one. To select a different contrast, we can use the `name=` argument to the `results()` function call. To see the names of all the possible contrasts, you can use the function resultsNames(). Give it a try below.
-
+To select a different contrast, we can use the `name=` argument to the `results()` function call.
+You have only one contrast in this tutorial, but try to specify it explicitly in the results() function, as you would do if you were selecting one contrast among several.
 
 ```{r contrast, exercise=TRUE, exercise.eval=TRUE, exercise.setup="dds-post"}
 
@@ -811,6 +690,9 @@ summary(...)
 ```
 
 ```{r summary-solution}
+resultsNames(dds)
+some_results <- results(dds,name="A_CONTRAST_YOU_CHOOSE")
+
 summary(some_results)
 ```
 
@@ -907,7 +789,8 @@ row_sel <-some_results %>%
   as.data.frame() %>%
   filter(!is.na(padj)) %>% 
   filter(padj <= 0.01) %>%
-  filter(abs(log2FoldChange) >= 0.5)
+  filter(abs(log2FoldChange) >= 0.5) %>%
+  rownames()
 
 
 col_sel <- dds$Condition
@@ -916,7 +799,7 @@ vsd <- varianceStabilizingTransformation(dds,blind=FALSE)
 vst <- assay(vsd)
 vst <- vst - min(vst)
 
-Heatmap(t(scale(t(vst[rownames(row_sel),1:ncol(dds)]))),
+Heatmap(t(scale(t(vst[row_sel,1:ncol(dds)]))),
         clustering_distance_columns="pearson",
         clustering_method_columns="ward.D2",
         clustering_distance_rows="pearson",
@@ -927,7 +810,9 @@ Heatmap(t(scale(t(vst[rownames(row_sel),1:ncol(dds)]))),
 
 A point of caution. Some low (or very low) expressed genes can be called differentially expressed. Hence it is good pratice to plot the distribution of the average counts of the DE genes. Use the code block below to take a look (suggestion: `ggplot()`, `geom_boxplot()`, as well as `scale_y_log10()` as the counts are linear...)
 
-```{r DE-counts, exercise=TRUE, exercise.eval=TRUE, exercise_setup= "heatmap"}
+```{r counts, exercise=TRUE, exercise.eval=TRUE, exercise.setup= "volcano-plot"}
+
+
 row_sel <-some_results %>%
   as.data.frame() %>%
   filter(!is.na(padj)) %>% 
@@ -936,23 +821,32 @@ row_sel <-some_results %>%
 
 ```
 
-```{r DE-counts-hint-1}
+```{r counts-hint-1}
 ggplot(DATA,AES) + geom_boxplot() + scale_y_log10()
 ```
 
-```{r DE-counts-hint-2}
+```{r counts-hint-2}
 ggplot(tibble(y=...$baseMean),aes(y=y)) + geom_boxplot() + scale_y_log10()
 # you could improve this by setting the y axis label
 # you could also provide an `x` variable to replace the x axis continuous scale
 ```
 
-```{r DE-counts-hint-3}
+```{r counts-hint-3}
 ggplot(tibble(y=...$baseMean),aes(y=y,x="Condition")) + geom_boxplot() + scale_y_log10("average normalised counts")
 # you could add another violin layer, give the boxplot a `notch`, and remove the x axis `x` label
 ```
 
 
-```{r DE-counts-solution}
+```{r counts-solution}
+
+row_sel <-some_results %>%
+  as.data.frame() %>%
+  filter(!is.na(padj)) %>% 
+  filter(padj <= 0.01) %>%
+  filter(abs(log2FoldChange) >= 0.5) %>% 
+  rownames()
+
+
 ggplot(tibble(y=some_results[row_sel,"baseMean"]),aes(y=y,x="Condition")) + 
   geom_violin() + scale_y_log10("average normalised counts") + 
   scale_x_discrete(element_blank()) + geom_boxplot(notch=TRUE)
@@ -1068,7 +962,10 @@ Now that we have a set of candidate genes, it is time to look into what their fu
 
 We will start by exporting the results for the simple and complex model, so we can do the downstream analysis tomorrow!
 
-```{r export, exercise=TRUE, exercise.eval=FALSE, exercise.setup= "heatmap"}
+```{r export, exercise=TRUE, exercise.eval=FALSE, exercise.setup= "dds-post"}
+resultsNames(dds)
+#Select the condition you prefer instead of the one I wrote here
+some_results <- results(dds,name="Condition_6h_5C_vs_24h_neg5C")
 
 some_results %>% 
   as.data.frame() %>% 
