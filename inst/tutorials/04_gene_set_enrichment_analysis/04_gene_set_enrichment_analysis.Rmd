@@ -138,7 +138,7 @@ There must be another way to look at the data! Gene Set Enrichment Analysis (GSE
 
 GSEA aims at answering the question: is my list of genes (the gene set) associated with the experimental condition? For example, "are there unusually many de-regulated genes in my gene list?" or "is my DE gene list enriched for some functional processes?".
 
-Let us load the DE data we generated. The file is "PATH_TO_PROJECT_FOLDER/results_DE.tsv".
+Let us load the DE data we generated yesterday.
 
 ```{r load, exercise=TRUE, exercise.eval=FALSE}
 
@@ -170,7 +170,7 @@ Still, most of these rely on three approaches, reviewed in [Khatri et al., 2012]
 
 * Over-representation analysis (ORA): is a type of differentially expressed (DE) genes in the set more common than expected from the population? For example, is 1 gene in 10 of the upregulated genes a transcription factor, when transcription factors are 1 gene in 100 in the expressed genes?
 
-<!-- Edoardo: Should we limit ourselves to over representation analyses? -->
+
 * Functional class scoring (FCS): summarize statistic of DE of genes in a set, and compare to a null (typically permutation of the sample labels)
 * Pathway topology (PT): include pathway knowledge in performing FCS, _e.g._ the number and type of interactions between gene products
 
@@ -217,10 +217,9 @@ quiz(caption="A 'population'?",
               answer("All the genes not in the gene-set")
      ))
 ```
-
 There are some caveats with the fisher test too. [Bauer S. _et al._, 2008](https://academic.oup.com/bioinformatics/article/24/14/1650/182451) expresses it this way:
 
-_A disadvantage of this method_ (Fisher's one sided exact test) _is that it ... disregards dependencies related to annotations ... a gene which is annotated to t is also annotated to all parent ... This leads to a problem if we consider multiple terms simultaneously: the chance of t being enriched is much higher if one or more of its parental terms is enriched._
+_A disadvantage of this method_ (Fisher's one sided exact test) _is that it ... disregards dependencies related to annotations ... a gene which is annotated to t is also annotated to all parents ... This leads to a problem if we consider multiple terms simultaneously: the chance of t being enriched is much higher if one or more of its parental terms is enriched._
 
 In other words, enrichment can propagate downwards through the DAG GO graph. To address this, [Grossmann _et al._,2007](https://academic.oup.com/bioinformatics/article/23/22/3024/208216) and Bauer _et al._, proposed and implemented the `Parent-Child` test.
 
@@ -255,10 +254,10 @@ Only the model organism _Arabidopsis thaliana_ is decently annotated. If we look
 ```{r limitation-quizz}
 quiz(caption="Limitations",
      question("Which of the following are limitations of a GSEA?",
-              answer("The annotation are partial",correct=TRUE),
+              answer("The annotations are partial",correct=TRUE),
               answer("The database are only informed by what scientists study",correct=TRUE),
-              answer("Model organism suffer from a lack of annotation",correct=TRUE),
-              answer("Model organism suffer from a lack of manually verified annotation",correct=TRUE),
+              answer("Non model organisms suffer from a lack of annotation",correct=TRUE),
+              answer("Non model organisms suffer from a lack of manually verified annotation",correct=TRUE),
               try_again=TRUE,
               post_message="And the list goes on and on..."
      ))
@@ -338,7 +337,7 @@ Downregulated <- population %>% filter(padj < 0.01) %>% filter(log2FoldChange < 
 In order to know if a GO term is over-represented in our gene sets of interest, compared to the whole population, we must know which genes are annotated with each GO term.
 Use the following code to load the gene annotation of the species your group is using. Then, filter the dataset so it includes only the genes present in the population, then save the resulting object in a rds format.
 
-```{r annotation, exercise=TRUE, exercise.eval=FALSE}
+```{r annotation, exercise=TRUE, exercise.eval=FALSE, exercise.setup="population_setup"}
 
 # Spruce GO 
 spruce_genes <- read.csv(here("inst/tutorials/04_gene_set_enrichment_analysis/files/spruce_go_new_ids.csv"), header = TRUE)
@@ -396,7 +395,7 @@ In order to run TopGO, we first must define a GOdata object containing the infor
 We will test for BPs, which are the GO terms most commonly used, but you can easily investigate the other GO terms using "MF" and "CC".
 Similarly, in the presented code we will run the test for the Upregulated genes, but you should run it also for the downregulated ones.
 
-```{r GOdata, exercise=TRUE, exercise.setup="geneID2GO_setup", exercise.eval=TRUE}
+```{r GOdata, exercise=FALSE, exercise.setup="geneID2GO_setup", exercise.eval=TRUE}
 geneList <- factor(as.integer(names(geneID2GO) %in% Upregulated$geneID))
 names(geneList) <- names(geneID2GO)
 
@@ -418,7 +417,7 @@ allGO <- usedGO(GOdata)
 
 Now that the object is set up (it has retrieved the annotation and linked our gene set), we can define the testing. `topGO` supports the `Parent Child` test, but again, it took a while to find that information.
 
-```{r test, exercise=TRUE, exercise.eval=TRUE, exercise.timelimit=300, exercise.setup="GOdata"}
+```{r test, exercise=TRUE, exercise.eval=FALSE, exercise.timelimit=300, exercise.setup="GOdata"}
 resultPC <- runTest(GOdata, 
                     algorithm = "parentchild",
                     statistic = "fisher")
@@ -430,7 +429,8 @@ Observe the `topGO` package does not do any multiple testing correction by defau
 The function "GenTable" of the TopGO package allows us to export the enriched GOs in a clear dataframe, where we can adjust the pvalue and add the results as an additional column.
 The topnodes argument indicate the number of GOs to be included in the table, in this case we get all of them, but then filter out those that have adjusted pvalues higher than 0.01.
 
-```{r mtest, exercise=TRUE, exercise.eval=TRUE,exercise.setup="test" }
+
+```{r mtest, exercise=TRUE, exercise.eval=FALSE,exercise.setup="test" }
 FDR <- p.adjust(score(resultPC),method="BH")
 allResSig <- GenTable(GOdata, 
                    parentchildFisher = resultPC, 
@@ -479,7 +479,7 @@ allResSig <- allResSig %>% mutate(scores = -log10(padj))
 
 Then, we can visualize the terms according to their score using a wordcloud, a type of graph where the GO terms with the higher scores will appear bigger:
 
-```{r wordcloud, exercise=TRUE, exercise.eval=TRUE, exercise.setup="mtest"}
+```{r wordcloud, exercise=TRUE, exercise.eval=FALSE, exercise.setup="mtest"}
 allResSig <- allResSig %>% mutate(scores = -log10(padj))
 library(wordcloud)
 wordcloud(words = allResSig$Term, 
@@ -552,8 +552,9 @@ weight01Fisher <- runTest(GOdata,algorithm="weight01",statistic="fisher")
 ```
 
 We will again use`GenTable`. That function is actually very versatile and could be used to compare different sets of results, _e.g._:
+Remember to remove the results of the tests that you did not perform.
 
-```{r comparison, exercise=TRUE, exercise.eval=FALSE, exercise.lines=10, exercise.setup="tests"}
+```{r comparison, exercise=TRUE, exercise.eval=FALSE, exercise.lines=10, exercise.timelimit=300, exercise.setup="tests"}
 
 comp <- as_tibble(GenTable(GOdata,classicFisher=classicFisher,
          elimFisher=elimFisher,
@@ -565,7 +566,7 @@ comp <- as_tibble(GenTable(GOdata,classicFisher=classicFisher,
 
 Now that we built a comparison of three methods against the `parentchild` reference, let us visualise the results of the overlap. This is usually done using Venn diagrams, but these quickly turn cumbersome to interpret and are hard to draw for more than five sets. Instead, a more generic visualisation are the `upset` plots from the library [UpSetR](https://cran.r-project.org/web/packages/UpSetR/index.html). The `upset` function expects a list of numerical vectors, where an overlap is represented by the same value being present across multiple lists - see the [Basic Usage](https://cran.r-project.org/web/packages/UpSetR/vignettes/basic.usage.html) vignette. We will use `dplyr` to extract the data from the results of `GenTable` and turn it into a boolean matrix.
 
-```{r upset, exercise=TRUE, exercise.eval=FALSE, exercise.lines=12, exercise.setup="comparison"}
+```{r upset, exercise=TRUE, exercise.eval=FALSE, exercise.lines=12, exercise.setup="comparison", exercise.timelimit=300}
 library(UpSetR)
 dat <- comp %>% dplyr::select(contains("Fisher") & -starts_with("Rank")) %>% 
   mutate_if(is.character,parse_double) %>% 
@@ -583,7 +584,7 @@ Which tests were similar between each other? Which ones were more conservative?
 
 The vignette from the `topGO` package has a section arguing (mostly) against multiple testing correction. Redo the previous analysis, without the multiple testing correction.
 
-```{r comp2, exercise=TRUE, exercise.eval=FALSE, exercise.lines=15, exercise.setup="tests"}
+```{r comp2, exercise=TRUE, exercise.eval=FALSE, exercise.lines=15, exercise.setup="tests", exercise.timelimit=300}
 
 ```
 
@@ -609,7 +610,9 @@ Did the results change? Are the most conservative tests the same?
 
 There are numerous possibilities for running a GO enrichment analysis in R. A quick search reveals numerous packages, _e.g._ [GOfuncR](https://bioconductor.org/packages/release/bioc/vignettes/GOfuncR/inst/doc/GOfuncR.html), [simplifyEnrichment](https://bioconductor.org/packages/simplifyEnrichment/), [ViSEAGO](https://bioconductor.org/packages/ViSEAGO), [clusterProfiler](https://bioconductor.org/packages/release/bioc/html/clusterProfiler.html), _etc._
 
-Many of these will depend on annotations, so before proceeding, let us have a quick peek at annotations
+We will not explore them, but it is good that you know that TopGO is not the only solution.
+
+No matter which one you use, all these tools will depend on having an annotation of the genes in your organism, so let's talk briefly about annotations.
 
 ---
 
@@ -629,7 +632,7 @@ It is good practice and highly recommended to always include the session info in
 
 ```
 
-```{r session-info-hint}
+```{r session-info-solution}
 sessionInfo()
 ```
 
