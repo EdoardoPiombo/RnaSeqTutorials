@@ -2,8 +2,8 @@
 title: "Differential Gene Expression (DGE)"
 author: "Nicolas Delhomme and Edoardo Piombo"
 tutorial:
-  id: "org.bnbio.tutorials.03_differential_gene_expression"
-  version: 0.6
+  id: "03_differential_gene_expression"
+  version: 0.1
 output:
   learnr::tutorial:
     progressive: true

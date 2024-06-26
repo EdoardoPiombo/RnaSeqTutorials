@@ -1,9 +1,9 @@
 ---
 title: "Gene Set Enrichment Analysis (GSEA)"
-author: "Nicolas Delhomme for Bn Bioinformatics"
+author: "Edoardo Piombo and Nicolas Delhomme"
 tutorial:
-  id: "org.bnbio.tutorials.04_gene_set_enrichment_analysis"
-  version: 0.7.2
+  id: "04_gene_set_enrichment_analysis"
+  version: 0.1
 output:
   learnr::tutorial:
     progressive: true
@@ -11,12 +11,9 @@ output:
 runtime: shiny_prerendered
 ---
 
-<!-- todo move the heavy lifting from the setup chunk to dedicated exercise.setup calls -->
+
 
 ```{r setup, include=FALSE}
-# to run locally replace tutorials/04_gene_set_enrichment_analysis/www with inst/tutorials/04_gene_set_enrichment_analysis/www
-
-# to run as an app replace tutorials/04_gene_set_enrichment_analysis/www with www
 
 # libraries
 suppressPackageStartupMessages({
@@ -39,8 +36,6 @@ tutorial_options(
   exercise.reveal_solution=TRUE,
   exercise.lines=5)
 
-# setup
-load(here("tutorials/04_gene_set_enrichment_analysis/www/data.rda"))
 
 # step to reproduce
 # ---
@@ -155,8 +150,15 @@ Let us load the DE data we generated. The file is "PATH_TO_PROJECT_FOLDER/result
 ```
 
 ```{r load-solution}
-DEres <- read_tsv(file=here("PATH_TO_PROJECT_FOLDER/results_DE.tsv"),show_col_types=FALSE)
+DEres <- read_tsv(file=here("inst/tutorials/03_differential_gene_expression/some_results.tsv"),show_col_types=FALSE)
 ```
+
+
+```{r DE_setup, eval=TRUE, include=FALSE}
+DEres <- read_tsv(file=here("inst/tutorials/03_differential_gene_expression/some_results.tsv"),show_col_types=FALSE)
+
+```
+
 
 Now, that we have restored the DE results in `R` from our analysis, we can start to do a gene ontology enrichment analysis. There are many ways to do so, and many online tools too, but for now, we will use a `R` package called `topGO`. `topGO` is a package that was developed at the time when expression profiling was done on microarray and while the package is still relevant nowadays, the documentation has aged and is far from being comprehensive.
 
@@ -270,7 +272,7 @@ As we have seen, there are a number of aspects we will need to manage, including
 We start with the latter. Use the following code block to extract the population we will compare our set to. Just a few reminders, the population cannot be the whole gene catalog, as not all genes are expressed. Then, should genes that are expressed below the signal to noise cutoff even be considered? After-all they are uninformative. One way to identify the genes rejected by DESeq() during its independent filtering step is to look for genes which have a `NA` value as their FDR (padj). Use the following block to define your population.
 
 
-```{r population, exercise=TRUE, exercise.eval=FALSE}
+```{r population, exercise=TRUE, exercise.eval=FALSE, exercise.setup="DE_setup"}
 
 ```
 
@@ -286,6 +288,13 @@ population <- DEres %>% filter(!is.na(padj))
 ```{r population-solution}
 # a more advanced solution, keeping only the columns of interest
 population <- DEres %>% filter(!is.na(padj)) %>% dplyr::select(geneID,padj,log2FoldChange)
+```
+
+
+```{r population_setup, eval=TRUE, include=FALSE}
+DEres <- read_tsv(file=here("inst/tutorials/03_differential_gene_expression/some_results.tsv"),show_col_types=FALSE)
+population <- DEres %>% filter(!is.na(padj)) %>% dplyr::select(geneID,padj,log2FoldChange)
+
 ```
 
 Next, we will set up the objects needed for `topGO`. That information was devised from the `topGO` package vignette.
@@ -305,7 +314,7 @@ To get them, we must filter according to padj, as discussed yesterday, but also 
 
 Write some code to get the list of Upregulated and Downregulated genes, using a padj threshold of 0.01 and a log2FC threshold of 0.5.
 
-```{r genesets, exercise=TRUE, exercise.eval=FALSE}
+```{r genesets, exercise=TRUE, exercise.eval=FALSE, exercise.setup="population_setup"}
 
 ```
 
@@ -327,20 +336,20 @@ Downregulated <- population %>% filter(padj < 0.01) %>% filter(log2FoldChange < 
 
 #### Loading GO data
 In order to know if a GO term is over-represented in our gene sets of interest, compared to the whole population, we must know which genes are annotated with each GO term.
-Use the following code to load the gene annotation of the species your group is using. Then, filter the dataset so it includes only the genes present in the population:
+Use the following code to load the gene annotation of the species your group is using. Then, filter the dataset so it includes only the genes present in the population, then save the resulting object in a rds format.
 
 ```{r annotation, exercise=TRUE, exercise.eval=FALSE}
 
 # Spruce GO 
-spruce_genes <- read.csv("/mnt/picea/projects/functional-genomics-course/spring2024/data/week2/GO_ids/spruce_go_new_ids.csv", header = TRUE)
+spruce_genes <- read.csv(here("inst/tutorials/04_gene_set_enrichment_analysis/files/spruce_go_new_ids.csv"), header = TRUE)
 geneID2GO <- unstack(spruce_genes[,c(1,2)])
 
 # Pine GO 
-pine_genes <- read.csv("/mnt/picea/projects/functional-genomics-course/spring2024/data/week2/GO_ids/Pinsy01_go_ids_mod.csv", header = TRUE)
+pine_genes <- read.csv(here("inst/tutorials/04_gene_set_enrichment_analysis/files/Pinsy01_go_ids_mod.csv"), header = TRUE)
 geneID2GO <- unstack(pine_genes[,c(1,2)])
 
 # Aspen GO
-geneID2GO <- readMappings("/mnt/picea/projects/functional-genomics-course/spring2024/data/week2/GO_ids/Potra02_go_ids.tsv")[-1]
+geneID2GO <- readMappings(here("inst/tutorials/04_gene_set_enrichment_analysis/files/Potra02_go_ids.tsv"))[-1]
 
 
 
@@ -357,29 +366,37 @@ geneID2GO <- readMappings("/mnt/picea/projects/functional-genomics-course/spring
 
 ```{r annotation-solution}
 # Spruce GO 
-spruce_genes <- read_csv("/mnt/picea/projects/functional-genomics-course/spring2024/data/week2/GO_ids/spruce_go_new_ids.csv")
+spruce_genes <- read.csv(here("inst/tutorials/04_gene_set_enrichment_analysis/files/spruce_go_new_ids.csv"), header = TRUE)
 geneID2GO <- unstack(spruce_genes[,c(1,2)])
 
 # Pine GO 
-pine_genes <- read_csv("/mnt/picea/projects/functional-genomics-course/spring2024/data/week2/GO_ids/Pinsy01_go_ids_mod.csv")
+pine_genes <- read.csv(here("inst/tutorials/04_gene_set_enrichment_analysis/files/Pinsy01_go_ids_mod.csv"), header = TRUE)
 geneID2GO <- unstack(pine_genes[,c(1,2)])
 
 # Aspen GO
-geneID2GO <- readMappings("/mnt/picea/projects/functional-genomics-course/spring2024/data/week2/GO_ids/Potra02_go_ids.tsv")[-1]
+geneID2GO <- readMappings(here("inst/tutorials/04_gene_set_enrichment_analysis/files/Potra02_go_ids.tsv"))[-1]
 
-ExpressedGenes <- population %>% select(geneID) %>% pull()
-geneID2GO <- geneID2GO %>% filter(gene %in% ExpressedGenes)
+ExpressedGenes <- population %>% dplyr::select(geneID) %>% pull()
+geneID2GO <- geneID2GO[names(geneID2GO) %in% ExpressedGenes]
+saveRDS(geneID2GO,file=here("tutorials/04_gene_set_enrichment_analysis/geneID2GO.rds"))
 
 ```
 
+```{r geneID2GO_setup, eval=TRUE, include=FALSE}
+DEres <- read_tsv(file=here("inst/tutorials/03_differential_gene_expression/some_results.tsv"),show_col_types=FALSE)
+population <- DEres %>% filter(!is.na(padj)) %>% dplyr::select(geneID,padj,log2FoldChange)
+Upregulated <- population %>% filter(padj < 0.01) %>% filter(log2FoldChange > 0.5)
+Downregulated <- population %>% filter(padj < 0.01) %>% filter(log2FoldChange < 0.5)
+geneID2GO <- readRDS(here("tutorials/04_gene_set_enrichment_analysis/geneID2GO.rds"))
 
+```
 
 #### Setting the GOdata object
 In order to run TopGO, we first must define a GOdata object containing the information we collected so far. Namely, it must contain the list of genes included in the population, their GO terms, which type of GO terms we will test for (BP: biological processes, CC: cellular components, MF: molecular functions) and which genes are in our gene set of interest.
 We will test for BPs, which are the GO terms most commonly used, but you can easily investigate the other GO terms using "MF" and "CC".
 Similarly, in the presented code we will run the test for the Upregulated genes, but you should run it also for the downregulated ones.
 
-```{r GOdata, exercise=TRUE}
+```{r GOdata, exercise=TRUE, exercise.setup="geneID2GO_setup", exercise.eval=TRUE}
 geneList <- factor(as.integer(names(geneID2GO) %in% Upregulated))
 names(geneList) <- names(geneID2GO)
 
@@ -396,64 +413,6 @@ allGO <- usedGO(GOdata)
 
 
 
-
-<!--Edoardo: the following part is not necessary anymnore, given that now we filter the dataset before the test
-
-#### Score
-
-We need to have a vector that contains the scores (_e.g._ padj), as a named vector. The names need to be the gene ID that will be present in our GO annotation.
-
-```{r genelist, exercise=TRUE, exercise.eval=FALSE}
-population.score <- population$padj
-names(population.score) <- sub("\\.\\d+","",population$geneID)
-```
-
-
-
-#### Significance
-We need a function to define the genes / scores that are significant
-
-```{r genesel, exercise=TRUE, exercise.eval=FALSE}
-getDEgenes <- function(allScore){
-  alpha=0.01
-  return(allScore <= alpha)
-}
-```
-
-However, what we would really need (review Schurch _et al._, RNA, 2016) is both a cutoff on the FDR and log2 fold-changes. The `topGO` design is not flexible enough to allow for that (we can have only one score), so we work our way around that. We change all FDR that corresponds to genes which |log2FC| is below 0.5 to 1.
-
-```{r lfc, exercise=TRUE, exercise.eval=FALSE}
-lfc=0.5
-population.score[abs(population$log2FoldChange) <= lfc] <- 1
-```
-
-
-#### Annotation
-
-Finally, we need to define which Annotation to use. There the documentation of `topGO` is laconic. I figured out that we can use the `org` annotation package from Bioconductor, provide them as a `mapping` and define which `ID` should be used to identify the genes:
-
-1. `annot = annFUN.org`
-2. `mapping="org.Hs.eg.db"`
-3. `ID="ensembl"`
-
-#### Bringing it all together
-
-
-```{r go, exercise=TRUE, exercise.eval=FALSE, exercise.timelimit=300, exercise.lines=15}
-library(topGO)
-library(org.Hs.eg.db)
-GOdata <- new("topGOdata",
-              description = "G03 vs. G02 at T04 (simple model)",
-              ontology = "BP",
-              allGenes = population.score,
-              geneSel = getDEgenes,
-              nodeSize = 5,
-              annot = annFUN.org,
-              mapping="org.Hs.eg.db",
-              ID="ensembl")
-```
-
--->
 
 #### Testing
 
