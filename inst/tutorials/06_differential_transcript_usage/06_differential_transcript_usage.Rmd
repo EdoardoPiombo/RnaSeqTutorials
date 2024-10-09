@@ -249,6 +249,7 @@ common_precision(d)
 ```
 
 ```{r precision-plot, exercise=TRUE, exercise.eval=TRUE}
+d <- readRDS(file=here("tutorials/06_differential_transcript_usage/www/dmDSdata.rds"))
 plotPrecision(d)
 ```
 
