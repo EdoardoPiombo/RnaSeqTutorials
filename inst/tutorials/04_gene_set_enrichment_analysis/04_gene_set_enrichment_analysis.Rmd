@@ -405,8 +405,8 @@ enr <- tibble(ID=names(FDR)[FDR <= alpha],
 ```
 
 ```{r write, eval=FALSE, echo=TRUE}
-dir.create(here("analysis/GO"),showWarnings=FALSE)
-write_tsv(enr,file=here("analysis/GO/G03_vs_G02_at_T04_simple-model_GO-enrichment.tsv"))
+dir.create(here("inst/tutorials/04_gene_set_enrichment_analysis/www/analysis/GO"),showWarnings=FALSE)
+write_tsv(enr,file=here("inst/tutorials/04_gene_set_enrichment_analysis/www/analysis/GO/G03_vs_G02_at_T04_simple-model_GO-enrichment.tsv"))
 ```
 
 Now that we have exported the data, we can use them in other resources, one that I like is [REVIGO](http://revigo.irb.hr). Let's have a look.
@@ -853,6 +853,7 @@ pmcplot(terms, 2010:2022)
 ```
 
 ```{r pmcplot2, exercise=TRUE, exercise.eval=TRUE, exercise.timelimit=600}
+terms <- edo$Description[1:5]
 pmcplot(terms, 2010:2022, proportion=FALSE)
 ```
 
