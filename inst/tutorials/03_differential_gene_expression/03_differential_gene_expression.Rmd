@@ -748,7 +748,7 @@ G03_vs_G02_at_T03 <- results(dds,name="treatment_G03_vs_G02")
 
 ```{r G03_vs_G02_at_T03, include=FALSE, eval=TRUE}
 G03_vs_G02_at_T03 <- readRDS(file=here("tutorials/03_differential_gene_expression/www/G03_vs_G02_at_T03.rds"))
-dds <- readRDS(here("inst/tutorials/03_differential_gene_expression/www/dds-post.rds"))
+dds <- readRDS(here("tutorials/03_differential_gene_expression/www/dds-post.rds"))
 ```
 
 Excellent. We could now export the results to a file for future reference / use. You would do this as follows:
