@@ -505,6 +505,14 @@ Now that we built a comparison of three methods against the `parentchild` refere
 
 ```{r upset, exercise=TRUE, exercise.eval=FALSE, exercise.lines=12}
 library(UpSetR)
+
+comp <- as_tibble(GenTable(GOdata,classicFisher=classicFisher,
+         elimFisher=elimFisher,
+         parentchildFisher=parentchildFisher,
+         weight01Fisher=weight01Fisher,
+         orderBy="parentchildFisher",
+         topNodes=sum(p.adjust(score(parentchildFisher),method="BH") <= 0.01)))
+
 dat <- comp %>% dplyr::select(contains("Fisher") & -starts_with("Rank")) %>% 
   mutate_if(is.character,parse_double) %>% 
   mutate_all("<",0.01)
@@ -590,10 +598,6 @@ _Note: The issues raised in that paper from 2006: [Babel's tower revisited: a un
 
 #### Testing methods
 
-**In that section, we used to run a test using the `GOfuncR` package but it is broken on Mac atm (Nov. 2023).**
-
-Its results have been stored in an object and can be used. Read through the current section, but do not run the code. You might also just skip until the `Comparison` section.
-
 Now that we know a bit more about annotations, let us try the `GOfuncR` package. Following the instructions [there](https://bioconductor.org/packages/release/bioc/vignettes/GOfuncR/inst/doc/GOfuncR.html#core-function-go_enrich) and the example [there](https://bioconductor.org/packages/release/bioc/vignettes/GOfuncR/inst/doc/GOfuncR.html#hypergeometric-test-using-a-defined-background-gene-set) we can set up the object and perform the enrichment. 
 
 ```{r gofuncr, exercise=TRUE, exercise.eval=FALSE, exercise.timelimit=300, exercise.lines=12}
@@ -656,6 +660,13 @@ res[res$node_id %in% go_IDs,]
 Now that we ran two tools and many methods, we can find out how they overlap.
 
 ```{r method-comp, exercise=TRUE, exercise.eval=FALSE}
+
+comp <- as_tibble(GenTable(GOdata,classicFisher=classicFisher,
+         elimFisher=elimFisher,
+         parentchildFisher=parentchildFisher,
+         weight01Fisher=weight01Fisher,
+         orderBy="parentchildFisher",
+         topNodes=sum(p.adjust(score(parentchildFisher),method="BH") <= 0.01)))
 
 comp$GO.ID %in% res$node_id
 
